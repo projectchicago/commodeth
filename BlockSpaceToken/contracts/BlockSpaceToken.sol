@@ -4,27 +4,33 @@ pragma solidity ^0.4.23;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 
 contract BlockSpaceToken is ERC721Token {
-    
-    using SafeMath for uint;
-    
+
+  
+  using SafeMath for uint;
+  
     /* 
-        Both issuers and buyers can trade these contracts
-        - Should both gas users and miners be issuers?
-        - Price of the contract is the price of the future
-        - Bond needs to be set in the contract by the miner
+    Both issuers and buyers can trade these contracts
+    - Should both gas users and miners be issuers?
+     -> Anyone can be an issuer, it's okay to have NFTs floating around who don't have offerers and takers
+     -> Though the current implimentation, whoever creates the NFT is the owner -> taker?
+     -> If a taker creates the contract, then they have to transfer money to the offerer...
+      -> how to do this safely and atomically... Might be best just to have the miner be the issuer
+     -> UX could be like a taker goes to an miner and gives them parameters and asks them to be an issuer...
+    - Price of the contract is the price of the future
+    - Bond needs to be set in the contract by the miner
     */
-    
+  
     struct Derivative {
         uint lower;
         uint upper;
-        uint gasLimit;
+        uint gasLimit; // AKA Miner
         address offerer;
         address taker;
-        uint bond;
+        uint bond; // Have to note the value here, need to track state for refunding
         bool settled;
         bool taken; 
     }
-    
+
     event DerivativeCreated(uint indexed id, uint lower, uint upper, uint gasLimit, address indexed offerer);
     event DerivativeTaken(uint indexed id, address indexed offerer, address indexed taker, uint bond);
     // FIXME
@@ -37,6 +43,8 @@ contract BlockSpaceToken is ERC721Token {
     
     constructor() ERC721Token("BlockSpaceToken","SPACE") public { }
 
+    // If a miner where to issue this, then they would set themselves as the offerer
+    // If random person created this they would have to find a miner to fill it + fulfill
     function mint(uint _lower, uint _upper, uint _gasLimit, address _offerer) external payable returns (uint)  {
     
         require(_lower < _upper);
@@ -50,6 +58,18 @@ contract BlockSpaceToken is ERC721Token {
         _mint(msg.sender, id);
         
         return id;
+    }
+
+    // Only msg.sender should be able to set themselves as the offerer
+    // Needs to be some level of access controls here, where the previous
+    function setOfferer(uint _id) external {
+        require(derivativeData[_id].offerer != address(0));
+        derivativeData[_id].offerer = msg.sender;  
+    }
+
+    // Note bond can only be increased, not decreased in current implimentation
+    function setBond(uint _id) external payable {
+        derivativeData[_id].bond += msg.value;
     }
     
     function take(uint id) public payable {
@@ -105,5 +125,5 @@ contract BlockSpaceToken is ERC721Token {
         d.offerer.transfer(d.gasLimit);
         emit DerivativeCanceled(id, d.offerer, d.gasLimit, d.bond);
     }
-
+  
 }
