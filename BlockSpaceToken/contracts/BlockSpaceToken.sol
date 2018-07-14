@@ -9,49 +9,40 @@ contract BlockSpaceToken is ERC721Token {
   using SafeMath for uint;
   
     /* 
-    Both issuers and buyers can trade these contracts
-    - Should both gas users and miners be issuers?
-     -> Anyone can be an issuer, it's okay to have NFTs floating around who don't have offerers and takers
-     -> Though the current implimentation, whoever creates the NFT is the owner -> taker?
-     -> If a taker creates the contract, then they have to transfer money to the offerer...
-      -> how to do this safely and atomically... Might be best just to have the miner be the issuer
-     -> UX could be like a taker goes to an miner and gives them parameters and asks them to be an issuer...
-    - Price of the contract is the price of the future
-    - Bond needs to be set in the contract by the miner
+    	- Miners is currently the issuer and offerer
+    	- Taker is the owner of the NFT
     */
   
     struct Derivative {
         uint lower;
         uint upper;
-        uint gasLimit; // AKA Miner
+        uint gasLimit; // refers to the amount of gas in a block
         address offerer;
-        address taker;
-        uint bond; // Have to note the value here, need to track state for refunding
+        uint bond;
         bool settled;
-        bool taken; 
+        bytes executionMessage; // what function to call when the miner settles the contract
+        address executionAddress; // the address of the smart contract to call
     }
 
     event DerivativeCreated(uint indexed id, uint lower, uint upper, uint gasLimit, address indexed offerer);
-    event DerivativeTaken(uint indexed id, address indexed offerer, address indexed taker, uint bond);
-    // FIXME
-    // event DerivativeSettled(uint indexed id, address indexed maker, address indexed taker, uint makerAmount, uint takerAmount, uint triggerPrice, uint actualPrice, uint triggerHeight, uint jackpot);
+    event DerivativeSettled(uint indexed id, address indexed maker, address indexed taker, bool executed);
+    event BondClaimed(address indexed taker, uint bond);
     event DerivativeCanceled(uint indexed id, address indexed offerer, uint gasLimit, uint bond);
-    // FIXME
-    // event DerivativeError(uint indexed id, address indexed maker, address indexed taker, uint makerAmount, uint takerAmount, uint triggerPrice, uint triggerHeight, int tcRequestId);
         
     mapping (uint => Derivative) public derivativeData;
     
     constructor() ERC721Token("BlockSpaceToken","SPACE") public { }
 
-    // If a miner where to issue this, then they would set themselves as the offerer
-    // If random person created this they would have to find a miner to fill it + fulfill
-    function mint(uint _lower, uint _upper, uint _gasLimit, address _offerer) external payable returns (uint)  {
+    // Miners are the issuers and must set the bond when they create the contract
+    function mint(uint _lower, uint _upper, uint _gasLimit) external payable returns (uint)  {
     
         require(_lower < _upper);
         require(_lower > block.number);
         
         uint id = totalSupply();
-        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, 0x0, 0, false, false);
+        address _offerer = msg.sender;
+        uint _bond = msg.value;
+        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, _bond, false, 0x0, 0x0); // what to do null for bytes
         
         emit DerivativeCreated(id, _lower, _upper, _gasLimit, _offerer);
         
@@ -60,70 +51,68 @@ contract BlockSpaceToken is ERC721Token {
         return id;
     }
 
-    // Only msg.sender should be able to set themselves as the offerer
-    // Needs to be some level of access controls here, where the previous
-    function setOfferer(uint _id) external {
-        require(derivativeData[_id].offerer != address(0));
-        derivativeData[_id].offerer = msg.sender;  
+    // Trading the miners / offerer
+    function transferOfferer(uint _id) external {
+    		// Need to have the existing offerer allow another agent to take over it
     }
 
     // Note bond can only be increased, not decreased in current implimentation
-    function setBond(uint _id) external payable {
+    // No access controls anyone can increase the bond amount
+    function increaseBond(uint _id) external payable {
         derivativeData[_id].bond += msg.value;
     }
-    
-    function take(uint id) public payable {
-        require(id < totalSupply());
-        Derivative storage d = derivativeData[id];
-        require(!d.taken);
-        require(!d.settled);
-        d.bond = msg.value;
-        d.taken = true;
-        d.taker = msg.sender;
-        emit DerivativeTaken(id, d.offerer, d.taker, d.bond);
-    }
-    
-    /*function settle(uint id) public {
-        // anyone can call this for now; make it an option? 
-        // restrict only to taker and/or maker to be settled?
-        require(id < totalSupply());
-        Derivative storage d = derivativeData[id];
-        require(block.number >= d.lower && block.number <= d.upper);
-        require(d.taken);
-        require(!d.settled);
-        d.settled = true;
-        // Check whether triggerPrice is greater than current price
-        // If so, pay maker full value; else pay taker full value
-        bytes32[] memory requestData = new bytes32[](0);
-        uint8 requestType = 2;
-        int64 tcRequestId = int64(tcContract.request.value(TC_FEE)(requestType, this, TC_CALLBACK_FID, 0, requestData));
-         // TODO - Think about handling various requestId values differently
-         //   If requestId > 0, then this is the Id uniquely assigned to this request. 
-         //   If requestId = -2^250, then the request fails because the requester didn't send enough fee to the TC Contract. 
-         //   If requestId = 0, then the TC service is suspended due to some internal reason. No more requests or cancellations can be made but previous requests will still be responded to by TC. 
-         //   If requestId < 0 && requestId != -2^250, then the TC Contract is upgraded and requests should be sent to the new address -requestId.
-        
-        if (tcRequestId < 1) { // Error occured from TownCrier
-                d.maker.transfer(d.makerAmount);
-                d.taker.transfer(d.takerAmount.sub(TC_FEE));
-                emit DerivativeError(id, d.maker, d.taker, d.makerAmount, d.takerAmount, d.triggerPrice, d.triggerHeight, tcRequestId);
-                return;
-        }
-        
-        tcIdToBTCFeeID[uint256(tcRequestId)] = (id + 1); // prevent id from ever being 0 (mapping lookup)
-        emit TCRequestStatus(tcRequestId);
-    }
-    */
 
-    function cancel(uint id) public {
-        require(id < totalSupply());
-        Derivative storage d = derivativeData[id];
+    function setExecutionAddress(uint _id, address _executionAddress) {
+    		require(msg.sender == ownerOf(_id));
+    		derivativeData[_id].executionAddress = _executionAddress;
+    }
+
+    function setExecutionMessage(uint _id, bytes _executionMessage) {
+    		require(msg.sender == ownerOf(_id));
+    		derivativeData[_id].executionMessage = _executionMessage;
+    }
+
+    function settle(uint _id) public {
+				Derivative storage d = derivativeData[_id];
+
+				require(msg.sender == d.offerer);
+				assert(msg.gasleft() > d.gasLimit);
+
+				address newAddress = d.executionAddress;
+				bool executed = newAddress.call(d.executionMessage).gas(d.gasLimit);
+
+				if (executed) {
+						d.offerer.transfer(d.bond);
+						d.settled = true;
+				}
+
+				emit DerivativeSettled(_id, d.offerer, ownerOf(_id), executed);
+    }
+
+    // If the miner / offerer does not execute and the block height has passed
+    // -> then the taker can claim the bond
+    function reclaim(uint _id) {
+    		Derivative storage d = derivativeData[_id];
+    		if (d.upper < block.height) {
+    				ownerOf(_id).transfer(d.bond); // is using `ownerOf(_id)` more efficient?
+    				d.settled = true;
+
+    				emit BondClaimed(ownerOf(_id), d.bond);
+    		}
+    }
+    
+
+    // Should follow the chicago style futures model for cancelling
+    function cancel(uint _id) public {
+        require(_id < totalSupply());
+        Derivative storage d = derivativeData[_id];
         require(msg.sender == d.offerer);
-        require(!d.taken);
+        require(ownerOf(_id) != address(0));
         require(!d.settled);
         d.settled = true;
-        d.offerer.transfer(d.gasLimit);
-        emit DerivativeCanceled(id, d.offerer, d.gasLimit, d.bond);
+        d.offerer.transfer(d.bond);
+
+        emit DerivativeCanceled(_id, d.offerer, d.gasLimit, d.bond);
     }
   
 }
