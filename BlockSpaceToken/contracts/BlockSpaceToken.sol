@@ -4,13 +4,12 @@ pragma solidity ^0.4.23;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 
 contract BlockSpaceToken is ERC721Token {
-
   
   using SafeMath for uint;
   
     /* 
-    	- Miners is currently the issuer and offerer
-    	- Taker is the owner of the NFT
+        - Miners is currently the issuer and offerer
+        - Taker is the owner of the NFT
     */
   
     struct Derivative {
@@ -34,7 +33,7 @@ contract BlockSpaceToken is ERC721Token {
     constructor() ERC721Token("BlockSpaceToken","SPACE") public { }
 
     // Miners are the issuers and must set the bond when they create the contract
-    function mint(uint _lower, uint _upper, uint _gasLimit) external payable returns (uint)  {
+    function mint(uint _lower, uint _upper, uint _gasLimit) public payable returns (uint)  {
     
         require(_lower < _upper);
         require(_lower > block.number);
@@ -42,7 +41,7 @@ contract BlockSpaceToken is ERC721Token {
         uint id = totalSupply();
         address _offerer = msg.sender;
         uint _bond = msg.value;
-        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, _bond, false, 0x0, 0x0); // what to do null for bytes
+        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, _bond, false, "", address(0x0)); // what to do null for bytes
         
         emit DerivativeCreated(id, _lower, _upper, _gasLimit, _offerer);
         
@@ -52,55 +51,56 @@ contract BlockSpaceToken is ERC721Token {
     }
 
     // Trading the miners / offerer
-    function transferOfferer(uint _id) external {
-    		// Need to have the existing offerer allow another agent to take over it
+    function transferOfferer(uint _id) public {
+        // Need to have the existing offerer allow another agent to take over it
     }
 
     // Note bond can only be increased, not decreased in current implimentation
     // No access controls anyone can increase the bond amount
-    function increaseBond(uint _id) external payable {
+    function increaseBond(uint _id) public payable {
         derivativeData[_id].bond += msg.value;
     }
 
-    function setExecutionAddress(uint _id, address _executionAddress) {
-    		require(msg.sender == ownerOf(_id));
-    		derivativeData[_id].executionAddress = _executionAddress;
+    function setExecutionAddress(uint _id, address _executionAddress) public {
+        require(msg.sender == ownerOf(_id));
+        derivativeData[_id].executionAddress = _executionAddress;
     }
 
-    function setExecutionMessage(uint _id, bytes _executionMessage) {
-    		require(msg.sender == ownerOf(_id));
-    		derivativeData[_id].executionMessage = _executionMessage;
+    function setExecutionMessage(uint _id, bytes _executionMessage) public {
+        require(msg.sender == ownerOf(_id));
+        derivativeData[_id].executionMessage = _executionMessage;
     }
 
-    function settle(uint _id) public {
-				Derivative storage d = derivativeData[_id];
+    function settle(uint _id) public returns (bool) {
+        Derivative storage d = derivativeData[_id];
 
-				require(msg.sender == d.offerer);
-				assert(msg.gasleft() > d.gasLimit);
+        require(msg.sender == d.offerer);
+        assert(gasleft() > d.gasLimit);
 
-				address newAddress = d.executionAddress;
-				bool executed = newAddress.call(d.executionMessage).gas(d.gasLimit);
+        address newAddress = d.executionAddress;
+        bool executed = newAddress.call.gas(d.gasLimit)(d.executionMessage);
 
-				if (executed) {
-						d.offerer.transfer(d.bond);
-						d.settled = true;
-				}
+        if (executed) {
+            d.offerer.transfer(d.bond);
+            d.settled = true;
+        }
 
-				emit DerivativeSettled(_id, d.offerer, ownerOf(_id), executed);
+        emit DerivativeSettled(_id, d.offerer, ownerOf(_id), executed);
+
+        return executed;
     }
 
     // If the miner / offerer does not execute and the block height has passed
     // -> then the taker can claim the bond
-    function reclaim(uint _id) {
-    		Derivative storage d = derivativeData[_id];
-    		if (d.upper < block.height) {
-    				ownerOf(_id).transfer(d.bond); // is using `ownerOf(_id)` more efficient?
-    				d.settled = true;
+    function reclaim(uint _id) public {
+        Derivative storage d = derivativeData[_id];
+        if (d.upper < block.number) {
+            ownerOf(_id).transfer(d.bond); // is using `ownerOf(_id)` more efficient?
+            d.settled = true;
 
-    				emit BondClaimed(ownerOf(_id), d.bond);
-    		}
+            emit BondClaimed(ownerOf(_id), d.bond);
+        }
     }
-    
 
     // Should follow the chicago style futures model for cancelling
     function cancel(uint _id) public {
