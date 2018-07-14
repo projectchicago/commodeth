@@ -1,6 +1,6 @@
 # BlockSpaceToken
 
-##Prerequisites
+## Prerequisites
 
 * Install ganache
 	
