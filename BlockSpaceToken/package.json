@@ -7,14 +7,16 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "truffle test"
   },
   "keywords": [],
   "author": "",
-  "license": "MIT",
+  "license": "UNLICENSED",
+  "private": true,
   "dependencies": {
-    "openzeppelin-solidity": "1.11.0",
-    "truffle-hdwallet-provider": "0.0.5",
+    "openzeppelin-solidity": "1.11.0"
+  },
+  "devDependencies": {
     "truffle-test-utils": "^0.1.0"
   }
 }
