@@ -12,6 +12,11 @@ contract BlockSpaceToken is ERC721Token {
   /* 
     Both issuers and buyers can trade these contracts
     - Should both gas users and miners be issuers?
+     -> Anyone can be an issuer, it's okay to have NFTs floating around who don't have offerers and takers
+     -> Though the current implimentation, whoever creates the NFT is the owner -> taker?
+     -> If a taker creates the contract, then they have to transfer money to the offerer...
+      -> how to do this safely and atomically... Might be best just to have the miner be the issuer
+     -> UX could be like a taker goes to an miner and gives them parameters and asks them to be an issuer...
     - Price of the contract is the price of the future
     - Bond needs to be set in the contract by the miner
   */
@@ -20,19 +25,22 @@ contract BlockSpaceToken is ERC721Token {
     uint lower;
     uint upper;
     uint gasLimit;
-    address offerer;
+    address offerer; // AKA Miner
+    uint bond; // Have to note the value here, need to track state for refunding
   }
   
   event DerivativeCreated(uint indexed id, uint lower, uint upper, uint gasLimit, address offerer);
   
   mapping (uint => Derivative) public derivativeData;
   
+  // If a miner where to issue this, then they would set themselves as the offerer
+  // If random person created this they would have to find a miner to fill it + fulfill
   function mint(uint _lower, uint _upper, uint _gasLimit, address _offerer) public returns (uint)  {
     require(_lower < _upper);
     require(_lower > block.number);
     
     uint id = totalSupply();
-    derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer);
+    derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, 0);
     
     emit DerivativeCreated(id, _lower, _upper, _gasLimit, _offerer);
     
@@ -40,8 +48,21 @@ contract BlockSpaceToken is ERC721Token {
     
     return id;
   }
+
+  // Note bond can only be increased, not decreased in current implimentation
+  function setBond(uint _id) public payable {
+  	derivativeData[_id].bond += msg.value;
+  }
+
+  // Only msg.sender should be able to set themselves as the offerer
+  // Needs to be some level of access controls here, where the previous
+  function setOfferer(uint _id) public {
+  	require(derivativeData[_id].offerer != address(0)
+  	derivativeData[_id].offerer += msg.sender;	
+  }
   
   // Add function to get information
   // function setOfferer() {}
-  // function setBond() {}
+  // function cancel() {}
+  // function settle() {}
 }
