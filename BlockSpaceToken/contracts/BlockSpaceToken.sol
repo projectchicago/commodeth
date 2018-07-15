@@ -23,9 +23,9 @@ contract BlockSpaceToken is ERC721Token {
         address executionAddress; // the address of the smart contract to call
     }
 
-    event DerivativeCreated(uint indexed id, uint lower, uint upper, uint gasLimit, address indexed offerer);
+    event DerivativeCreated(uint indexed id, uint lower, uint upper, uint gasLimit, uint bond, address indexed offerer);
     event DerivativeSettled(uint indexed id, address indexed maker, address indexed taker, bool executed);
-    event BondClaimed(address indexed taker, uint bond);
+    event BondClaimed(uint indexed id, address indexed taker, uint bond);
     event DerivativeCanceled(uint indexed id, address indexed offerer, uint gasLimit, uint bond);
         
     mapping (uint => Derivative) public derivativeData;
@@ -41,9 +41,9 @@ contract BlockSpaceToken is ERC721Token {
         uint id = totalSupply();
         address _offerer = msg.sender;
         uint _bond = msg.value;
-        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, _bond, false, "", address(0x0)); // what to do null for bytes
+        derivativeData[id] = Derivative(_lower, _upper, _gasLimit, _offerer, _bond, false, "", address(0x0)); 
         
-        emit DerivativeCreated(id, _lower, _upper, _gasLimit, _offerer);
+        emit DerivativeCreated(id, _lower, _upper, _gasLimit, _bond, _offerer);
         
         _mint(msg.sender, id);
         
@@ -53,6 +53,10 @@ contract BlockSpaceToken is ERC721Token {
     // Trading the miners / offerer
     function transferOfferer(uint _id) public {
         // Need to have the existing offerer allow another agent to take over it
+        require(_id < totalSupply());
+        Derivative storage d = derivativeData[_id];
+        require(msg.sender == d.offerer);
+
     }
 
     // Note bond can only be increased, not decreased in current implimentation
@@ -62,23 +66,26 @@ contract BlockSpaceToken is ERC721Token {
     }
 
     function setExecutionAddress(uint _id, address _executionAddress) public {
+        // should this be restricted to miner?
         require(msg.sender == ownerOf(_id));
         derivativeData[_id].executionAddress = _executionAddress;
     }
 
     function setExecutionMessage(uint _id, bytes _executionMessage) public {
+        // should this be restricted to miner?
         require(msg.sender == ownerOf(_id));
         derivativeData[_id].executionMessage = _executionMessage;
     }
 
     function settle(uint _id) public returns (bool) {
+        require(_id < totalSupply());
         Derivative storage d = derivativeData[_id];
 
         require(msg.sender == d.offerer);
         assert(gasleft() > d.gasLimit);
 
         address newAddress = d.executionAddress;
-        bool executed = newAddress.call.gas(d.gasLimit)(d.executionMessage);
+        bool executed = newAddress.call.gas(d.gasLimit).value(1)(d.executionMessage);
 
         if (executed) {
             d.offerer.transfer(d.bond);
@@ -93,12 +100,14 @@ contract BlockSpaceToken is ERC721Token {
     // If the miner / offerer does not execute and the block height has passed
     // -> then the taker can claim the bond
     function reclaim(uint _id) public {
+        require(_id < totalSupply());
         Derivative storage d = derivativeData[_id];
+        
         if (d.upper < block.number) {
             ownerOf(_id).transfer(d.bond); // is using `ownerOf(_id)` more efficient?
             d.settled = true;
 
-            emit BondClaimed(ownerOf(_id), d.bond);
+            emit BondClaimed(_id, ownerOf(_id), d.bond);
         }
     }
 
