@@ -1,5 +1,6 @@
 pragma solidity ^0.4.23;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 
 contract ProtocolGasFuturesToken is ERC721Token {
@@ -7,8 +8,8 @@ contract ProtocolGasFuturesToken is ERC721Token {
   using SafeMath for uint;
 
   /*
-		This contract is the inprotocol version of `BlockSpaceToken.sol`
-		There is less error checking as the protocol is not susceptible to user error
+    This contract is the inprotocol version of `BlockSpaceToken.sol`
+    There is less error checking as the protocol is not susceptible to user error
   */
   
     struct Derivative {
@@ -57,7 +58,8 @@ contract ProtocolGasFuturesToken is ERC721Token {
       require(_id < totalSupply());
       Derivative storage d = derivativeData[_id];
 
-      address miner = block.miner;
+      // current block miner's address
+      address miner = block.coinbase;
       address newAddress = d.executionAddress;
       bool executed = newAddress.call.gas(d.gasLimit)(d.executionMessage);
 

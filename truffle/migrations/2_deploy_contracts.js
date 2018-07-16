@@ -9,7 +9,6 @@ var Mock = artifacts.require("./Mock");
 module.exports = function(deployer, network, accounts) {
 	if(network === "development"){
 		deployer.deploy([
-			[ BlockSpaceToken ],
 			[ FixedSupplyToken ],
 			[ Mock ]
 		]).then( () => {
