@@ -10,6 +10,7 @@ contract BlockSpaceToken is ERC721Token {
     /* 
         - Miners is currently the issuer and offerer
         - Taker is the owner of the NFT
+        - Taker pays the miner for the NFT
     */
   
     struct Derivative {
@@ -53,6 +54,7 @@ contract BlockSpaceToken is ERC721Token {
     // Trading the miners / offerer
     function transferOfferer(uint _id, address _offerer) public {
         // Need to have the existing offerer allow another agent to take over it
+        // Can copy pattern `safeTransferFrom`
         require(_id < totalSupply());
         Derivative storage d = derivativeData[_id];
         require(msg.sender == d.offerer);
