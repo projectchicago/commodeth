@@ -5,7 +5,7 @@ contract Mock{
 	uint public counter;
 
 	// 0xd09...de08a
-	function increment() external payable{
+	function increment() external {
 		counter = counter + 1;
 	}
 }

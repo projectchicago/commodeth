@@ -1,6 +1,6 @@
 var DexLib = artifacts.require("./DexLib");
 
-//var FixedSupplyToken = artifacts.require("./FixedSupplyToken");
+var FixedSupplyToken = artifacts.require("./FixedSupplyToken");
 var BlockSpaceToken = artifacts.require("./BlockSpaceToken");
 var Dex = artifacts.require("./Dex");
 
@@ -10,6 +10,7 @@ module.exports = function(deployer, network, accounts) {
 	if(network === "development"){
 		deployer.deploy([
 			[ BlockSpaceToken ],
+			[ FixedSupplyToken ],
 			[ Mock ]
 		]).then( () => {
 			return deployer.deploy(DexLib);

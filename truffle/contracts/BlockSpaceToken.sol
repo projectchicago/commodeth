@@ -51,12 +51,12 @@ contract BlockSpaceToken is ERC721Token {
     }
 
     // Trading the miners / offerer
-    function transferOfferer(uint _id) public {
+    function transferOfferer(uint _id, address _offerer) public {
         // Need to have the existing offerer allow another agent to take over it
         require(_id < totalSupply());
         Derivative storage d = derivativeData[_id];
         require(msg.sender == d.offerer);
-
+        d.offerer = _offerer;
     }
 
     // Note bond can only be increased, not decreased in current implimentation
@@ -66,13 +66,11 @@ contract BlockSpaceToken is ERC721Token {
     }
 
     function setExecutionAddress(uint _id, address _executionAddress) public {
-        // should this be restricted to miner?
         require(msg.sender == ownerOf(_id));
         derivativeData[_id].executionAddress = _executionAddress;
     }
 
     function setExecutionMessage(uint _id, bytes _executionMessage) public {
-        // should this be restricted to miner?
         require(msg.sender == ownerOf(_id));
         derivativeData[_id].executionMessage = _executionMessage;
     }
@@ -85,7 +83,7 @@ contract BlockSpaceToken is ERC721Token {
         assert(gasleft() > d.gasLimit);
 
         address newAddress = d.executionAddress;
-        bool executed = newAddress.call.gas(d.gasLimit).value(1)(d.executionMessage);
+        bool executed = newAddress.call.gas(d.gasLimit)(d.executionMessage);
 
         if (executed) {
             d.offerer.transfer(d.bond);

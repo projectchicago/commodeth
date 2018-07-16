@@ -2,29 +2,30 @@ require('truffle-test-utils').init();
 
 var DexArtifact = artifacts.require("Dex");
 
-async function mineBlock(){
-    await BlockSpaceTokenArtifact.web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_mine',
-        params: [],
-        id: 0
-    });
-}
-
-function getBalance(address){
-    return new Promise((resolve, reject) => {
-        BlockSpaceTokenArtifact.web3.eth.getBalance(address, function(err,balance){
-            if(err){
-                reject(err);
-            }else{
-                resolve(balance);
-            }
-        });
-    });
-}
+var Utils = require('./Utils')(DexArtifact);
 
 contract('Dex', function(accounts) {
 
+    it.skip('should skip test',async () => {
+
+        assert.fail("should not enter");
+
+    });
+
+    it("should not accept ether", async () => {
+
+        let instance = await DexArtifact.deployed();
+        try{
+            let tx = await instance.sendTransaction({
+                from: accounts[0],
+                value: 5
+            });
+            assert.fail('accepted ether');
+        }catch(e){
+            assert.ok(e);
+        }
+
+    });
 
 
 });

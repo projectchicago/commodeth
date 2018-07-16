@@ -3,26 +3,7 @@ require('truffle-test-utils').init();
 var BlockSpaceTokenArtifact = artifacts.require("BlockSpaceToken");
 var MockArtifact = artifacts.require("Mock");
 
-async function mineBlock(){
-    await BlockSpaceTokenArtifact.web3.currentProvider.send({
-        jsonrpc: '2.0',
-        method: 'evm_mine',
-        params: [],
-        id: 0
-    });
-}
-
-function getBalance(address){
-    return new Promise((resolve, reject) => {
-        BlockSpaceTokenArtifact.web3.eth.getBalance(address, function(err,balance){
-            if(err){
-                reject(err);
-            }else{
-                resolve(balance);
-            }
-        });
-    });
-}
+var Utils = require('./Utils')(BlockSpaceTokenArtifact);
 
 contract('BlockSpaceToken', function(accounts) {
 
@@ -104,7 +85,7 @@ contract('BlockSpaceToken', function(accounts) {
         });
         
         let increaseTransaction = await instance.increaseBond(id, { "from": accounts[2], "value": new web3.BigNumber("20000000000000000") } );
-        let balance = await getBalance(instance.address);
+        let balance = await Utils.getBalance(instance.address);
         assert.equal(balance.toString(), "20000000000001500");
     });
 
@@ -142,7 +123,7 @@ contract('BlockSpaceToken', function(accounts) {
         let instance = await BlockSpaceTokenArtifact.deployed();
         let mock = await MockArtifact.deployed();
         let bn = web3.eth.blockNumber;
-        let mintedTransaction = await instance.mint(bn+2,bn+4,100, { "from": accounts[1], value: 500 }) ;
+        let mintedTransaction = await instance.mint(bn+2,bn+4,20400, { "from": accounts[1], value: 500 }) ;
         let supply = await instance.totalSupply();
         let id = supply.sub(1).toNumber();
         assert.equal(supply.toString(), "5", "Minting should increase supply...");
@@ -152,27 +133,29 @@ contract('BlockSpaceToken', function(accounts) {
                 'id': id,
                 'lower': bn+2,
                 'upper': bn+4,
-                'gasLimit': 100,
+                'gasLimit': 20400,
                 'bond': 500,
                 'offerer': accounts[1]
             }
         });
 
-        let startBalance = await getBalance(instance.address);
+        let startBalance = await Utils.getBalance(instance.address);
 
         // someone takes miner's offer
         let transferTransaction = await instance.safeTransferFrom(accounts[1], accounts[2], id, { from: accounts[1] });
         let owner = await instance.ownerOf(id);
         assert.equal(owner,accounts[2]);
         
-        let execAddrTransaction = await instance.setExecutionAddress(id, mock.address, { "from": accounts[2], "value": new web3.BigNumber("20000000000000000") } );
+        let execAddrTransaction = await instance.setExecutionAddress(id, mock.address, { "from": accounts[2] } );
         assert.ok(execAddrTransaction);
 
-        let funcRef = web3.sha3('increment()').substring(0,11);
-        let execMessageTransaction = await instance.setExecutionMessage(id, funcRef, { "from": accounts[2], "value": new web3.BigNumber("20000000000000000") } );
+        let funcRef = web3.sha3('increment()').substring(0,11).padEnd(64,0);
+        let execMessageTransaction = await instance.setExecutionMessage(id, funcRef, { "from": accounts[2] } );
         assert.ok(execMessageTransaction);
 
+        let startCounter = await mock.counter.call();
         let settleTransaction = await instance.settle(id,{ "from": accounts[1] });
+        let endCounter = await mock.counter.call();
         assert.web3Event(settleTransaction, {
             'event': 'DerivativeSettled',
             'args': {
@@ -182,7 +165,7 @@ contract('BlockSpaceToken', function(accounts) {
                 'executed': true
             }
         });
-        
+        assert.equal(endCounter-startCounter, 1);
     });
 
     it("should allow taker to reclaim bond if offerer fails to execute", async() => {
@@ -211,7 +194,7 @@ contract('BlockSpaceToken', function(accounts) {
         assert.equal(owner,accounts[2]);
 
         for(var i = 0; i < 4; i++){
-            mineBlock();
+            Utils.mineBlock();
         }
 
         let reclaimTransaction = await instance.reclaim(id, { from: accounts[2] }) ;
