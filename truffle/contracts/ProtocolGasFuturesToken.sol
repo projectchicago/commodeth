@@ -5,12 +5,17 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 contract ProtocolGasFuturesToken is ERC721Token {
   
   using SafeMath for uint;
+
+  /*
+		This contract is the inprotocol version of `BlockSpaceToken.sol`
+		There is less error checking as the protocol is not susceptible to user error
+  */
   
     struct Derivative {
         uint startHeight;
         uint executeHeight;
         uint gasLimit; // refers to the amount of gas in a block
-        uint price; //price of the NFT after 1st sale
+        uint price; //price of the NFT at the 1st sale
         bytes executionMessage; // what function to call when the miner settles the contract
         address executionAddress; // the address of the smart contract to call
     }
@@ -22,10 +27,7 @@ contract ProtocolGasFuturesToken is ERC721Token {
     
     constructor() ERC721Token("ProtocolGasFutures","GASF") public { }
 
-    function mint(uint _startHeight, uint _executeHeight, uint _gasLimit) public payable returns (uint)  {
-    
-      require(_startHeight < _executeHeight);
-      require(_startHeight > block.number);
+    function issue(uint _startHeight, uint _executeHeight, uint _gasLimit) public payable returns (uint)  {
       
       uint id = totalSupply();
       derivativeData[id] = Derivative(_startHeight, _executeHeight, _gasLimit, 0, "", address(0x0)); 
