@@ -6,7 +6,7 @@
 	
 		npm install truffle -g
 
-* [Ganache CLI](https://github.com/trufflesuite/ganache-cli) (optional)
+* [Ganache CLI](https://github.com/trufflesuite/ganache-cli)
 
 		npm install -g ganache-cli
 	
@@ -14,13 +14,11 @@
 
 1. Start ganache-cli client or truffle's test client
 
-		ganache-cli -p 9545
-		OR 
-		truffle develop
+		ganache-cli -p 9545 -l 10000000
 
 2. Deploy contracts with the following command:
 
-		truffle migrate --network development
+		truffle migrate
 
 3. Run the following commands
 

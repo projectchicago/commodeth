@@ -22,7 +22,7 @@ module.exports = function(deployer, network, accounts) {
       deployer.link(DexLib, Dex);
       var admin = accounts[0];
       var period = 10;
-      return deployer.deploy(Dex, admin, period, { gas: 8000000 });
+      return deployer.deploy(Dex, admin, period, { gas: "8000000" });
     });
   }
 };
