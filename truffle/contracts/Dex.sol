@@ -48,7 +48,7 @@ contract Dex {
     function addToken (address addr, string name) public {
         require(msg.sender == dex.admin);
         require(!checkToken(name));
-        dex.tokens[dex.numToken].initToken(addr, name, dex.numToken);
+        dex.tokens[dex.numToken].initToken(addr, name);
         dex.tokenIndex[name] = dex.numToken;
         dex.numToken++;
         
@@ -72,7 +72,7 @@ contract Dex {
     
     function depositToken(string name, uint amount) public {
         require(dex.tokenIndex[name] != 0);
-        ERC20 token= ERC20(dex.tokens[dex.tokenIndex[name]].tokenAddr);
+        ERC20 token = ERC20(dex.tokens[dex.tokenIndex[name]].tokenAddr);
         require(token.transferFrom(msg.sender, address(this), amount) == true);
         dex.balance[msg.sender][dex.tokenIndex[name]].add(amount);
         dex.freeBal[msg.sender][dex.tokenIndex[name]].add(amount);

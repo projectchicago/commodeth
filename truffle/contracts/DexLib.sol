@@ -72,11 +72,11 @@ library DexLib {
         self.batchTail = 0;
     }
 
-    function initToken(Token storage self, address addr, string name, uint numToken) internal {
+    function initToken(Token storage self, address addr, string name) internal {
         self.symbolName = name;
         self.tokenAddr = addr;
 
-        for (uint i = 0; i < numToken; i++) {
+        for (uint i = 0; i < MAXTOKEN; i++) {
             initBatch(self.batches[i]);
         }
     }
@@ -86,7 +86,7 @@ library DexLib {
         self.lenPeriod = lenPeriod;
         self.staPeriod = block.number;
         
-        initToken(self.tokens[self.numToken], 0, "ETH", self.numToken);
+        initToken(self.tokens[self.numToken], 0, "ETH");
         self.tokenIndex["ETH"] = self.numToken;
         self.numToken = 1;
     }
