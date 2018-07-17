@@ -1,0 +1,4 @@
+[submodule "geth_client"]
+	path = geth_client
+	url = https://github.com/pdaian/go-ethereum.git
+	branch = chicagoBootCamp
