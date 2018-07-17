@@ -1,8 +1,10 @@
 pragma solidity ^0.4.23;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./ProtocolGasFuturesToken.sol";
+import "./Dex.sol";
 
 contract ProtocolGasFutures {
   
@@ -12,26 +14,29 @@ contract ProtocolGasFutures {
 
   mapping (uint => uint) public ids;
 
-  event CreatedGasFuture(uint indexed id);
+  Dex dex;
 
-  modifier onlyProtocol{
-    // FIXME
-    //require(msg.sender == address(this));
-    _;
-  }
+  event CreatedGasFuture(uint indexed id);
+  event Debug(uint id, address owner);
 
   constructor(ProtocolGasFuturesToken _token) public{
     token = _token;  
   }
-
-  function () public payable{
-  }
   
-  function issue() onlyProtocol public returns (uint)  {
+  function issue(Dex _dex) public returns (uint){
+
+    dex = _dex;
+
     uint height = block.number;
     uint gasLimit = 1000000;
     uint id = token.issue(height+100, height+1000, gasLimit);
 
+    token.approve(_dex, id);
+
+    _dex.depositNFToken(token.name(), id);
+
+    _dex.askOrderERC721(token.name(), "ETH", id, 0, 1);
+  
     ids[height+1000] = id;
 
     emit CreatedGasFuture(id);
@@ -39,8 +44,13 @@ contract ProtocolGasFutures {
     return id;
   }
 
+  function runAuction(uint _id) public{
 
-  function settle() onlyProtocol public returns (bool) {
+    dex.settleERC721(token.name(), _id);
+
+  }
+
+  function settle() public returns (bool) {
     uint id = ids[block.number];
     bool executed = token.settle(id);
 

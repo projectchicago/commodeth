@@ -211,9 +211,9 @@ library DexLib {
                 uint volume = min(orderBid.volume, orderAsk.volume);
 
                 //buy (volume) "tokenTo" with (volume * price) "tokenFrom" [tokenFrom][tokenTo] 
-                dex.balance[orderBid.trader][tokenA].sub(volume.mul(price));
-                dex.balance[orderBid.trader][tokenB].add(volume);
-                dex.freeBal[orderBid.trader][tokenB].add(volume);
+                dex.balance[orderBid.trader][tokenA] = dex.balance[orderBid.trader][tokenA].sub(volume.mul(price));
+                dex.balance[orderBid.trader][tokenB] = dex.balance[orderBid.trader][tokenB].add(volume);
+                dex.freeBal[orderBid.trader][tokenB] = dex.freeBal[orderBid.trader][tokenB].add(volume);
                 orderBid.volume -= volume;
                 if (orderBid.volume == 0) {
                     i++;
@@ -221,9 +221,9 @@ library DexLib {
                 }
 
                 //sell (volume) "tokenFrom" for (volume * price) "tokenTo" [tokenTo][tokenFrom]
-                dex.balance[orderAsk.trader][tokenA].add(volume.mul(price));
-                dex.freeBal[orderAsk.trader][tokenA].add(volume.mul(price));
-                dex.balance[orderAsk.trader][tokenB].sub(volume);
+                dex.balance[orderAsk.trader][tokenA] = dex.balance[orderAsk.trader][tokenA].add(volume.mul(price));
+                dex.freeBal[orderAsk.trader][tokenA] = dex.freeBal[orderAsk.trader][tokenA].add(volume.mul(price));
+                dex.balance[orderAsk.trader][tokenB] = dex.balance[orderAsk.trader][tokenB].sub(volume);
                 orderAsk.volume -= volume;
                 if (orderAsk.volume == 0) {
                     j++;
@@ -273,11 +273,11 @@ library DexLib {
             uint price = orderBid.price;
 
             //buy 1 NFT with (price) FT [NFT][FT] 
-            dex.balance[orderBid.trader][ft].sub(price);
+            dex.balance[orderBid.trader][ft] = dex.balance[orderBid.trader][ft].sub(price);
             dex.nftokens[nft].owner[tokenId] = orderBid.trader;
 
             //sell 1 NFT for (price) FT [NFT][FT]
-            dex.balance[orderAsk.trader][ft].add(price);
+            dex.balance[orderAsk.trader][ft] = dex.balance[orderAsk.trader][ft].add(price);
 
             dex.nftokens[nft].tradingToken[tokenId] = 0;
             initBatch(self);

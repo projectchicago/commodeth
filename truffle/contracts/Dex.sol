@@ -20,7 +20,7 @@ contract Dex {
     event TokenAdded(string symbolName, address addr, uint idx);
     event Deposit(string symbolName, address user, uint value, uint balance);
     event Withdrawal(string symbolName, address user, uint value, uint balance);
-    event NewOrder(string tokenA, string tokenB, string orderType, uint volume, uint price);
+    event NewOrder(string tokenA, string tokenB, string orderType, uint price, uint volume);
     
     
     function () public {
@@ -69,25 +69,25 @@ contract Dex {
     
 
     function depositEther() public payable {
-        dex.balance[msg.sender][0].add(msg.value);
-        dex.freeBal[msg.sender][0].add(msg.value);
-        emit Deposit("ETH", msg.sender, msg.value, dex.balance[msg.sender][0]);
+        dex.balance[msg.sender][1] = dex.balance[msg.sender][1].add(msg.value);
+        dex.freeBal[msg.sender][1] = dex.freeBal[msg.sender][1].add(msg.value);
+        emit Deposit("ETH", msg.sender, msg.value, dex.balance[msg.sender][1]);
     }
     
     function withdrawalEther(uint amount) public {
-        require(dex.freeBal[msg.sender][0] >= amount);
-        dex.freeBal[msg.sender][0].sub(amount);
-        dex.balance[msg.sender][0].sub(amount);
+        require(dex.freeBal[msg.sender][1] >= amount);
+        dex.freeBal[msg.sender][1] = dex.freeBal[msg.sender][1].sub(amount);
+        dex.balance[msg.sender][1] = dex.balance[msg.sender][1].sub(amount);
         msg.sender.transfer(amount);
-        emit Withdrawal("ETH", msg.sender, amount, dex.balance[msg.sender][0]);
+        emit Withdrawal("ETH", msg.sender, amount, dex.balance[msg.sender][1]);
     }
     
     function depositToken(string name, uint amount) public {
         require(dex.tokenIndex[name] != 0);
         ERC20 token = ERC20(dex.tokens[dex.tokenIndex[name]].tokenAddr);
         require(token.transferFrom(msg.sender, address(this), amount) == true);
-        dex.balance[msg.sender][dex.tokenIndex[name]].add(amount);
-        dex.freeBal[msg.sender][dex.tokenIndex[name]].add(amount);
+        dex.balance[msg.sender][dex.tokenIndex[name]] = dex.balance[msg.sender][dex.tokenIndex[name]].add(amount);
+        dex.freeBal[msg.sender][dex.tokenIndex[name]] = dex.freeBal[msg.sender][dex.tokenIndex[name]].add(amount);
         emit Deposit(dex.tokens[dex.tokenIndex[name]].symbolName, msg.sender, amount, 
             dex.balance[msg.sender][dex.tokenIndex[name]]);
     }
@@ -96,8 +96,8 @@ contract Dex {
         require(dex.tokenIndex[name] != 0);
         require(dex.freeBal[msg.sender][dex.tokenIndex[name]] >= amount);
         ERC20 token = ERC20(dex.tokens[dex.tokenIndex[name]].tokenAddr);
-        dex.balance[msg.sender][dex.tokenIndex[name]].sub(amount);
-        dex.freeBal[msg.sender][dex.tokenIndex[name]].sub(amount);
+        dex.balance[msg.sender][dex.tokenIndex[name]] = dex.balance[msg.sender][dex.tokenIndex[name]].sub(amount);
+        dex.freeBal[msg.sender][dex.tokenIndex[name]] = dex.freeBal[msg.sender][dex.tokenIndex[name]].sub(amount);
         require(token.transfer(msg.sender, amount) == true);
         emit Withdrawal(dex.tokens[dex.tokenIndex[name]].symbolName, msg.sender, amount, 
             dex.balance[msg.sender][dex.tokenIndex[name]]);
@@ -139,7 +139,7 @@ contract Dex {
         order.initOrder(msg.sender, volume, price, nonce, block.number);
         DexLib.insertOrder(dex.tokens[idxFrom].batches[idxTo], dex.currentPeriod(block.number), 
             order, DexLib.OrderType.Bid);
-        dex.freeBal[msg.sender][idxFrom].sub(volume.mul(price));
+        dex.freeBal[msg.sender][idxFrom] = dex.freeBal[msg.sender][idxFrom].sub(volume.mul(price));
 
         emit NewOrder(tokenFrom, tokenTo, "Bid", price, volume);
     }
@@ -158,7 +158,7 @@ contract Dex {
         order.initOrder(msg.sender, volume, price, nonce, block.number);
         DexLib.insertOrder(dex.tokens[idxTo].batches[idxFrom],dex.currentPeriod(block.number), 
             order, DexLib.OrderType.Ask);
-        dex.freeBal[msg.sender][idxFrom].sub(volume);
+        dex.freeBal[msg.sender][idxFrom] = dex.freeBal[msg.sender][idxFrom].sub(volume);
 
         emit NewOrder(tokenTo, tokenFrom, "Ask", price, volume);
     }
@@ -177,7 +177,7 @@ contract Dex {
         order.initOrder(msg.sender, 1, price, nonce, block.number);
         DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], dex.currentPeriod(block.number), 
             order, DexLib.OrderType.Bid);
-        dex.freeBal[msg.sender][idxft].sub(price);
+        dex.freeBal[msg.sender][idxft] = dex.freeBal[msg.sender][idxft].sub(price);
 
         emit NewOrder(nft, ft, "Bid", price, tokenId);
     }
@@ -213,6 +213,10 @@ contract Dex {
         require(idxA < idxB);
 
         dex.settle(sortedBid, sortedAsk, idxA, idxB);
+    }
+
+    function settleERC721(string nft, uint tokenId) public{
+
     }
 
     function settleERC721(string nft, uint tokenId, uint[] sortedBid, uint[] sortedAsk) public {

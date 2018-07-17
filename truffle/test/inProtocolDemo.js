@@ -13,31 +13,10 @@ contract('In Protocol', function(accounts) {
 
   let dexAdmin = accounts[0];
   let miner = accounts[1];
-  let taker = accounts[2];
+  let bidder1 = accounts[2];
+  let bidder2 = accounts[3];
+  let bidder3 = accounts[4];
   let gasFutureId;
-
-  it('miner should be able to issue gas future', async () => {
-
-    let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
-
-    Utils.log("Protocol deployed at " + protocolInstance.address);
-
-    // let bal = await Utils.getBalance(protocolInstance.address);
-    // let expectedBalance = web3.toWei(5, 'ether');
-    // if(bal < expectedBalance){
-    //   let ethTx = await Utils.sendTransaction({
-    //     from: accounts[0],
-    //     to: protocolInstance.address,
-    //     value: new web3.BigNumber(expectedBalance).sub(bal)
-    //   });
-    // }
-
-    let issueTx = await protocolInstance.issue({ from: miner });
-    gasFutureId = issueTx.logs[0].args.id;
-    
-    Utils.log("Created gas future (id=" + gasFutureId + ")");
-
-  });
 
   it('DEX admin should be able to add token to DEX', async() => {
 
@@ -55,32 +34,116 @@ contract('In Protocol', function(accounts) {
 
   });
 
-  it('miner should be able to deposit token in DEX', async() => {
+  it('miner should be able to issue gas future', async () => {
 
     let dex = await DexArtifact.deployed();
+    let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
     let token = await ProtocolGasFuturesTokenArtifact.deployed();
-    
-    let symbolName = await token.symbol.call();
-    let depositTx = await dex.depositNFToken(symbolName, gasFutureId, { from: miner });
-    assert.web3Event(depositTx, {
-      'event': 'Deposit',
+
+    Utils.log("Protocol deployed at " + protocolInstance.address);
+
+    let tokenName = await token.name.call();
+    let issueTx = await protocolInstance.issue(dex.address, { from: miner });
+    assert(issueTx.logs.length > 0);
+    gasFutureId = issueTx.logs[0].args.id;
+    assert.web3Event(issueTx, {
+      'event': 'CreatedGasFuture',
       'args': {
-        'symbolName': symbol,
-        'user': miner, 
-        'value': gasFutureId,
-        'balance': 1
+        'id': gasFutureId.toNumber()
       }
     });
 
+    let owner = await token.ownerOf.call(gasFutureId);
+    Utils.log(owner);
+    
+    Utils.log("Created gas future (id=" + gasFutureId + ")");
+
   });
 
-  it('should be able gas future to transfer to taker', async () => {
+  it('bidder should be able to submit bids', async () => {
 
-    let transferTx = await token.safeTransferFrom(miner, taker, id, { from: miner });
-    let owner = await instance.ownerOf(id);
-    if(owner == taker){
-      Utils.log("miner " +  miner + " transferred gas future (id=" + gasFutureId + ") to " + taker);
-    }
+    let dex = await DexArtifact.deployed();
+    let token = await ProtocolGasFuturesTokenArtifact.deployed();
+    let tokenName = await token.name.call();
+    
+    let fiveETH = Number(web3.toWei(5,'ether'));
+    let deposit1 = await dex.depositEther({ from: bidder1, value: fiveETH });
+    assert.web3Event(deposit1, {
+      'event': 'Deposit',
+      'args': {
+        'symbolName': 'ETH', 
+        'user': bidder1,
+        'value': fiveETH,
+        'balance': fiveETH
+      }
+    });
+    let bid1 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 10, 0x0, { from: bidder1 });
+    assert.web3Event(bid1, {
+      'event': 'NewOrder',
+      'args': {
+        'tokenA': tokenName, 
+        'tokenB': 'ETH', 
+        'orderType': 'Bid', 
+        'volume': gasFutureId.toNumber(),
+        'price': 10
+      }
+    });
+
+    let deposit2 = await dex.depositEther({ from: bidder2, value: fiveETH });
+    assert.web3Event(deposit2, {
+      'event': 'Deposit',
+      'args': {
+        'symbolName': 'ETH', 
+        'user': bidder2,
+        'value': fiveETH,
+        'balance': fiveETH
+      }
+    });
+    let bid2 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 20, 0x1, { from: bidder2 });
+    assert.web3Event(bid2, {
+      'event': 'NewOrder',
+      'args': {
+        'tokenA': tokenName, 
+        'tokenB': 'ETH', 
+        'orderType': 'Bid', 
+        'volume': gasFutureId.toNumber(),
+        'price': 20
+      }
+    });
+
+    let deposit3 = await dex.depositEther({ from: bidder3, value: fiveETH });
+    assert.web3Event(deposit3, {
+      'event': 'Deposit',
+      'args': {
+        'symbolName': 'ETH', 
+        'user': bidder3,
+        'value': fiveETH,
+        'balance': fiveETH
+      }
+    });
+    let bid3 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 30, 0x2, { from: bidder3 });
+    assert.web3Event(bid3, {
+      'event': 'NewOrder',
+      'args': {
+        'tokenA': tokenName, 
+        'tokenB': 'ETH', 
+        'orderType': 'Bid', 
+        'volume': gasFutureId.toNumber(),
+        'price': 30
+      }
+    });
+
+
+  });
+
+  it('dex should run auction', async () => {
+
+    let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
+    let dex = await DexArtifact.deployed();
+    let token = await ProtocolGasFuturesTokenArtifact.deployed();
+    let tokenName = await token.name.call();
+
+    let auctionTx = await protocolInstance.runAuction(gasFutureId, { from: miner });
 
   });
 
