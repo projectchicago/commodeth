@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-contract FixedSupplyToken is ERC20 {
+contract ERC20Token is ERC20 {
     string public constant symbol = "FIXED";
     string public constant name = "Example Fixed Supply Token";
     uint8 public constant decimals = 0;
