@@ -6,7 +6,7 @@ library DexLib {
 
     using SafeMath for uint;
 
-    uint constant MAXORDER = 2**12;
+    uint constant MAXORDER = 2**15;
     uint constant MAXTOKEN = 2**7;
     uint constant MAXBATCH = 2**7;
 

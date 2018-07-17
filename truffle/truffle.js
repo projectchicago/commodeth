@@ -18,10 +18,19 @@ module.exports = {
   networks: {
     development: {
       host: "127.0.0.1",
-      port: 8545,
+      port: 9545,
       network_id: '*',
-      from: "0x00d4dec49a3d7e9f0b263cf0196fb6a1c7bcac52"//,
-      //gas: 10000000
+      gas: 10000000,
+      gasPrice: 1
+      //from: "0xe7d53f3320b5f1ba8a72e6d5c353bfaafaa2f88c",
+    }
+  },
+
+  solc: {
+    optimizer: {
+      enabled: true,
+      runs: 200
     }
   }
+
 };
