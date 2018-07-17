@@ -6,6 +6,7 @@ var MockArtifact = artifacts.require("Mock");
 var Utils = require('./Utils')(ProtocolGasFuturesTokenArtifact);
 
 contract('ProtocolGasFuturesToken', function(accounts) {
+    web3.eth.defaultAccount = web3.eth.coinbase;
 
     it("should have a name and ticker that are proper", async () => {
         let instance = await ProtocolGasFuturesTokenArtifact.deployed();
