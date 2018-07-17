@@ -22,7 +22,7 @@ module.exports = function(deployer, network, accounts) {
     }).then( () => {
       deployer.link(DexLib, Dex);
       var period = 10;
-      return deployer.deploy(Dex, ProtocolGasFutures.address, period, { from: accounts[0], gas: "8000000" });
+      return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
     });
   }
 };
