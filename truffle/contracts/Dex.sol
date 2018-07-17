@@ -21,6 +21,8 @@ contract Dex {
     event Deposit(string symbolName, address user, uint value, uint balance);
     event Withdrawal(string symbolName, address user, uint value, uint balance);
     event NewOrder(string tokenA, string tokenB, string orderType, uint price, uint volume);
+    event SettledOrder(string tokenA, string tokenB, uint price, uint volume);
+
     
     
     function () public {
@@ -215,10 +217,6 @@ contract Dex {
         dex.settle(sortedBid, sortedAsk, idxA, idxB);
     }
 
-    function settleERC721(string nft, uint tokenId) public{
-
-    }
-
     function settleERC721(string nft, uint tokenId, uint[] sortedBid, uint[] sortedAsk) public {
         require(dex.nftokenIndex[nft] != 0);
         uint8 idxnft = dex.nftokenIndex[nft];
@@ -227,5 +225,15 @@ contract Dex {
         require(dex.nftokens[idxnft].tradingToken[tokenId] != 0);
 
         dex.settleNFT(sortedBid, sortedAsk, idxnft, tokenId);
+    }
+
+    function settleERC721(string nft, uint tokenId) public {
+        require(dex.nftokenIndex[nft] != 0);
+        uint8 idxnft = dex.nftokenIndex[nft];
+
+        require(dex.nftokens[idxnft].existing[tokenId] == true);
+        require(dex.nftokens[idxnft].tradingToken[tokenId] != 0);
+
+        dex.settleNFT(idxnft, tokenId);
     }
 }

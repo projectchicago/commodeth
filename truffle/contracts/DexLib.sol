@@ -12,6 +12,8 @@ library DexLib {
 
     enum OrderType {Bid, Ask}
 
+    event SettledOrder(string tokenA, string tokenB, uint price, uint volume);
+
     //order fee not implemented!!!
 
     struct Order {
@@ -189,6 +191,34 @@ library DexLib {
                     && checkSortedBook(self.askBook[next], sortedAsk, OrderType.Ask));
         }
 
+    function sortOrderBook(OrderBook storage self, OrderType t) internal returns(uint[]) {
+        uint[] sortedOrder;
+        for (uint i = 0; i < self.numOrder; i++) {
+            sortedOrder.push(i);
+        }
+
+        uint k;
+        for (i = 0; i < self.numOrder; i++) {
+            for (uint j = i; j < self.numOrder; j++) {
+                if (t == OrderType.Bid) {
+                    if (compareOrder(self.orders[sortedOrder[i]], self.orders[sortedOrder[j]])) {
+                        k = sortedOrder[i];
+                        sortedOrder[i] = sortedOrder[j];
+                        sortedOrder[j] = k;
+                    }
+                } else {
+                    if (!compareOrder(self.orders[sortedOrder[i]], self.orders[sortedOrder[j]])) {
+                        k = sortedOrder[i];
+                        sortedOrder[i] = sortedOrder[j];
+                        sortedOrder[j] = k;                        
+                    }
+                }
+            }
+        }
+
+        return sortedOrder;
+    }
+
     function min(uint a, uint b) public pure returns(uint) {
         if (a < b) return a; else return b;
     }
@@ -229,6 +259,8 @@ library DexLib {
                     j++;
                     if (j < sortedAsk.length) orderAsk = self.askBook[cur].orders[sortedAsk[j]];
                 }
+
+                emit SettledOrder(dex.tokens[tokenA].symbolName, dex.tokens[tokenB].symbolName, price, volume);
             } else {
                 break;
             }
@@ -279,6 +311,8 @@ library DexLib {
             //sell 1 NFT for (price) FT [NFT][FT]
             dex.balance[orderAsk.trader][ft] = dex.balance[orderAsk.trader][ft].add(price);
 
+            emit SettledOrder(dex.nftokens[nft].symbolName, dex.tokens[ft].symbolName, price, tokenId);
+
             dex.nftokens[nft].tradingToken[tokenId] = 0;
             initBatch(self);
         } else {
@@ -324,6 +358,18 @@ library DexLib {
         require(self.timestamp[updateBatchIndex(self.batchHead)] + dex.lenPeriod <= block.number);
 
         require(checkSorting(self, sortedBid, sortedAsk));
+        firstPriceAuctionNFT(dex, sortedBid, sortedAsk, nft, tokenId);
+    }
+
+
+    function settleNFT(Dex storage dex, uint8 nft, uint tokenId) internal returns(Order) {
+        Batch storage self = dex.nftokens[nft].batches[tokenId];
+        require(self.batchHead != self.batchTail);
+        require(self.timestamp[updateBatchIndex(self.batchHead)] + dex.lenPeriod <= block.number);
+
+        uint next = updateBatchIndex(self.batchHead);
+        uint[] memory sortedBid = sortOrderBook(self.bidBook[next], OrderType.Bid);
+        uint[] memory sortedAsk = sortOrderBook(self.askBook[next], OrderType.Ask);
         firstPriceAuctionNFT(dex, sortedBid, sortedAsk, nft, tokenId);
     }
 
