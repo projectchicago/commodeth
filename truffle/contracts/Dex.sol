@@ -2,6 +2,7 @@ pragma solidity ^0.4.10;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 import "./DexLib.sol";
 
@@ -9,6 +10,7 @@ contract Dex {
 
     using DexLib for DexLib.Dex;
     using DexLib for DexLib.Token;
+    using DexLib for DexLib.NFToken;
     using DexLib for DexLib.Batch;
     using DexLib for DexLib.Order;
     using SafeMath for uint;
@@ -42,17 +44,27 @@ contract Dex {
 
     //check if the token is known
     function checkToken(string token) public view returns (bool) {
-        return (dex.tokenIndex[token] != 0 || keccak256(abi.encode(token)) == keccak256("ETH"));
+        return (dex.tokenIndex[token] != 0 || dex.nftokenIndex[token] != 0);
     }
         
     function addToken (address addr, string name) public {
         require(msg.sender == dex.admin);
         require(!checkToken(name));
+        dex.numToken++;
         dex.tokens[dex.numToken].initToken(addr, name);
         dex.tokenIndex[name] = dex.numToken;
-        dex.numToken++;
         
-        emit TokenAdded(name, addr, dex.numToken - 1);
+        emit TokenAdded(name, addr, dex.numToken);
+    }
+
+    function addNFToken (address addr, string name) public {
+        require(msg.sender == dex.admin);
+        require(!checkToken(name));
+        dex.numNFToken++;
+        dex.nftokens[dex.numNFToken].initNFToken(addr, name);
+        dex.nftokenIndex[name] = dex.numNFToken;
+
+        emit TokenAdded(name, addr, dex.numNFToken);
     }
     
 
@@ -91,8 +103,30 @@ contract Dex {
             dex.balance[msg.sender][dex.tokenIndex[name]]);
     }
 
+    function depositNFToken(string name, uint tokenId) public {
+        require(dex.nftokenIndex[name] != 0);
+        ERC721 token = ERC721(dex.nftokens[dex.nftokenIndex[name]].tokenAddr);
+        token.transferFrom(msg.sender, address(this), tokenId);
+        dex.nftokens[dex.nftokenIndex[name]].owner[tokenId] = msg.sender;
+        dex.nftokens[dex.nftokenIndex[name]].existing[tokenId] = true;
+        dex.nftokens[dex.nftokenIndex[name]].tradingToken[tokenId] = 0;
+        dex.nftokens[dex.nftokenIndex[name]].batches[tokenId].initBatch();
+        emit Deposit(dex.nftokens[dex.nftokenIndex[name]].symbolName, msg.sender, tokenId, 1);
+    }
+
+    function withdrawalNFToken(string name, uint tokenId) public {
+        require(dex.nftokenIndex[name] != 0);
+        require(dex.nftokens[dex.tokenIndex[name]].existing[tokenId] == true);
+        require(dex.nftokens[dex.tokenIndex[name]].owner[tokenId] == msg.sender);
+        ERC721 token = ERC721(dex.nftokens[dex.nftokenIndex[name]].tokenAddr);
+        dex.nftokens[dex.nftokenIndex[name]].existing[tokenId] = false;
+        token.transferFrom(address(this), msg.sender, tokenId);
+        emit Withdrawal(dex.nftokens[dex.nftokenIndex[name]].symbolName, msg.sender, tokenId, 1);
+
+    }
+
     //buy (volume) "tokenTo" with (volume * price) "tokenFrom" [tokenFrom][tokenTo] 
-    function bidOrder(string tokenFrom, string tokenTo, uint volume, uint price, 
+    function bidOrderERC20(string tokenFrom, string tokenTo, uint volume, uint price, 
         bytes32 nonce) public {
         require(checkToken(tokenFrom) && checkToken(tokenTo));
 
@@ -111,7 +145,7 @@ contract Dex {
     }
     
     //sell (volume) "tokenFrom" for (volume * price) "tokenTo" [tokenTo][tokenFrom]
-    function askOrder(string tokenFrom, string tokenTo, uint volume, uint price, 
+    function askOrderERC20(string tokenFrom, string tokenTo, uint volume, uint price, 
         bytes32 nonce) public {
         require(checkToken(tokenFrom) && checkToken(tokenTo));
 
@@ -129,9 +163,49 @@ contract Dex {
         emit NewOrder(tokenTo, tokenFrom, "Ask", price, volume);
     }
 
+    //buy 1 NFT with (price) FT [NFT][FT] 
+    function bidOrderERC721(string nft, string ft, uint tokenId, uint price, bytes32 nonce) public {
+        require(dex.nftokenIndex[nft] != 0 && dex.tokenIndex[ft] != 0);
+
+        uint8 idxnft = dex.nftokenIndex[nft];
+        uint8 idxft = dex.tokenIndex[ft];
+
+        require(dex.nftokens[idxnft].existing[tokenId] == true);
+        require(dex.nftokens[idxnft].tradingToken[tokenId] == idxft);
+        require(dex.freeBal[msg.sender][idxft] >= price);
+        DexLib.Order storage order;
+        order.initOrder(msg.sender, 1, price, nonce, block.number);
+        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], dex.currentPeriod(block.number), 
+            order, DexLib.OrderType.Bid);
+        dex.freeBal[msg.sender][idxft].sub(price);
+
+        emit NewOrder(nft, ft, "Bid", price, tokenId);
+    }
+    
+    //sell 1 NFT for (price) FT [NFT][FT]
+    function askOrderERC721(string nft, string ft, uint tokenId, uint price, bytes32 nonce) public {
+        require(dex.nftokenIndex[nft] != 0 && dex.tokenIndex[ft] != 0);
+
+        uint8 idxnft = dex.nftokenIndex[nft];
+        uint8 idxft = dex.tokenIndex[ft];
+
+        require(dex.nftokens[idxnft].existing[tokenId] == true);
+        require(dex.nftokens[idxnft].owner[tokenId] == msg.sender);
+        require(dex.nftokens[idxnft].tradingToken[tokenId] == 0 || 
+            dex.nftokens[idxnft].tradingToken[tokenId] == idxft);
+        dex.nftokens[idxnft].tradingToken[tokenId] = idxft;
+        DexLib.Order storage order;
+        order.initOrder(msg.sender, 1, price, nonce, block.number);
+        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], dex.currentPeriod(block.number), 
+            order, DexLib.OrderType.Ask);
+
+        emit NewOrder(nft, ft,  "Ask", price, tokenId);
+    }
+
+
     //not supporting cancellation yet!!!
 
-    function settle(string tokenA, string tokenB, uint[] sortedBid, uint[] sortedAsk) public {
+    function settleERC20(string tokenA, string tokenB, uint[] sortedBid, uint[] sortedAsk) public {
         require(checkToken(tokenA) && checkToken(tokenB));
 
         uint8 idxA = dex.tokenIndex[tokenA];
@@ -139,5 +213,15 @@ contract Dex {
         require(idxA < idxB);
 
         dex.settle(sortedBid, sortedAsk, idxA, idxB);
+    }
+
+    function settleERC721(string nft, uint tokenId, uint[] sortedBid, uint[] sortedAsk) public {
+        require(dex.nftokenIndex[nft] != 0);
+        uint8 idxnft = dex.nftokenIndex[nft];
+
+        require(dex.nftokens[idxnft].existing[tokenId] == true);
+        require(dex.nftokens[idxnft].tradingToken[tokenId] != 0);
+
+        dex.settleNFT(sortedBid, sortedAsk, idxnft, tokenId);
     }
 }
