@@ -12,7 +12,7 @@ contract('In Protocol', function(accounts) {
   let web3 = ProtocolGasFuturesArtifact.web3;
 
   let dexAdmin = accounts[0];
-  let miner = accounts[1];
+  let miner = web3.eth.coinbase;
   let bidder1 = accounts[2];
   let bidder2 = accounts[3];
   let bidder3 = accounts[4];
