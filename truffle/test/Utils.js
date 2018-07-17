@@ -18,6 +18,9 @@ module.exports = function(artifact){
                     }
                 });
             });
+        },
+        log: function(msg){
+            console.log("    " + msg);
         }
     };
 };

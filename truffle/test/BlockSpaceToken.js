@@ -5,7 +5,7 @@ var MockArtifact = artifacts.require("Mock");
 
 var Utils = require('./Utils')(BlockSpaceTokenArtifact);
 
-contract('BlockSpaceToken', function(accounts) {
+contract.skip('BlockSpaceToken', function(accounts) {
 
     it("should have a name and ticker that are proper", async () => {
         let instance = await BlockSpaceTokenArtifact.deployed();
