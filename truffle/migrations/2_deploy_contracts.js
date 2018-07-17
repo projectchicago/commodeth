@@ -15,14 +15,14 @@ module.exports = function(deployer, network, accounts) {
       [ ERC20Token ],
       [ Mock ]
     ]).then( () => {
-      return deployer.deploy(ProtocolGasFutures, ProtocolGasFuturesToken.address);
-    }).then( () => {
-      return deployer.deploy(DexLib);
+      return deployer.deploy([
+        [ ProtocolGasFutures, ProtocolGasFuturesToken.address ],
+        [ DexLib ]
+      ]);
     }).then( () => {
       deployer.link(DexLib, Dex);
-      var admin = accounts[0];
       var period = 10;
-      return deployer.deploy(Dex, admin, period, { gas: "8000000" });
+      return deployer.deploy(Dex, ProtocolGasFutures.address, period, { from: accounts[0], gas: "8000000" });
     });
   }
 };

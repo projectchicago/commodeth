@@ -19,8 +19,19 @@ module.exports = function(artifact){
                 });
             });
         },
+        sendTransaction: function(config){
+            return new Promise((resolve, reject) => {
+                artifact.web3.eth.sendTransaction(config, function(err,receipt){
+                    if(err){
+                        reject(err);
+                    }else{
+                        resolve(receipt);
+                    }
+                });
+            });
+        },
         log: function(msg){
-            console.log("    " + msg);
+            console.log("        " + msg);
         }
     };
 };

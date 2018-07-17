@@ -7,22 +7,23 @@ contract ProtocolGasFutures {
   
   using SafeMath for uint;
 
-  address extraProtocol; // Fill with the address of `ProtocolGasFuturesToken.sol`
-  ProtocolGasFuturesToken token;
+  ProtocolGasFuturesToken private token;
 
   mapping (uint => uint) public ids;
 
   event CreatedGasFuture(uint indexed id);
 
   modifier onlyProtocol{
-    //FIXME:
+    // FIXME
     //require(msg.sender == address(this));
     _;
   }
 
-  constructor(address _extraProtocol) public{
-    extraProtocol = _extraProtocol;
-    token = ProtocolGasFuturesToken(_extraProtocol);  
+  constructor(ProtocolGasFuturesToken _token) public{
+    token = _token;  
+  }
+
+  function () public payable{
   }
   
   function issue() onlyProtocol public returns (uint)  {

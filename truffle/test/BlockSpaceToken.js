@@ -1,8 +1,8 @@
 require('truffle-test-utils').init();
 
 var BlockSpaceTokenArtifact = artifacts.require("BlockSpaceToken");
-var MockArtifact = artifacts.require("Mock");
 
+var MockArtifact = artifacts.require("Mock");
 var Utils = require('./Utils')(BlockSpaceTokenArtifact);
 
 contract.skip('BlockSpaceToken', function(accounts) {
