@@ -1,3 +1,7 @@
+var HDWalletProvider = require("truffle-hdwallet-provider");
+
+var mnemonic = "crawl tip sword hair master age around opera notice glow guilt draw";
+
 /*
  * NB: since truffle-hdwallet-provider 0.0.5 you must wrap HDWallet providers in a 
  * function when declaring them. Failure to do so will cause commands to hang. ex:
@@ -17,8 +21,14 @@ module.exports = {
   // to customize your Truffle configuration!
   networks: {
     development: {
-      host: "127.0.0.1",
+      host: '127.0.0.1',
       port: 9545,
+      network_id: '*',
+      gas: 10000000,
+      gasPrice: 1
+    },
+    geth: {
+      provider: new HDWalletProvider(mnemonic, 'http://127.0.0.1:9545', 0, 10),
       network_id: '*',
       gas: 10000000,
       gasPrice: 1

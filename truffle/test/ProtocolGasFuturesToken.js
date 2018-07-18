@@ -38,7 +38,7 @@ contract('ProtocolGasFuturesToken', function(accounts) {
 
     });
 
-    it("should be able to set sales price", async () => {
+    it.skip("should be able to set sales price", async () => {
 
         let instance = await ProtocolGasFuturesTokenArtifact.deployed();
         let bn = web3.eth.blockNumber;

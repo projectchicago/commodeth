@@ -16,7 +16,7 @@ contract('In Protocol', function(accounts) {
   let bidder1 = accounts[2];
   let bidder2 = accounts[3];
   let bidder3 = accounts[4];
-  let gasFutureId;
+  let gasFutureIds = [];
 
   it('DEX admin should be able to add token to DEX', async() => {
 
@@ -45,18 +45,26 @@ contract('In Protocol', function(accounts) {
     let tokenName = await token.name.call();
     let issueTx = await protocolInstance.issue(dex.address, { from: miner });
     assert(issueTx.logs.length > 0);
-    gasFutureId = issueTx.logs[0].args.id;
-    assert.web3Event(issueTx, {
-      'event': 'CreatedGasFuture',
-      'args': {
-        'id': gasFutureId.toNumber()
+    var expected = [];
+    for(var i = 0; i < issueTx.logs.length; i++){
+      if(issueTx.logs[i].event == 'CreatedGasFuture'){
+        var tokenId = issueTx.logs[i].args.id;
+        gasFutureIds.push(tokenId);
+        expected.push({
+          'event': 'CreatedGasFuture',
+          'args': {
+            'id': tokenId.toNumber()
+          }
+        });
       }
-    });
-
-    let owner = await token.ownerOf.call(gasFutureId);
-    Utils.log(owner);
+    }
     
-    Utils.log("Created gas future (id=" + gasFutureId + ")");
+    assert.web3Events(issueTx, expected);
+
+    // let owner = await token.ownerOf.call(gasFutureIds);
+    // Utils.log(owner);
+    
+    // Utils.log("Created gas future (id=" + gasFutureId + ")");
 
   });
 
@@ -65,7 +73,7 @@ contract('In Protocol', function(accounts) {
     let dex = await DexArtifact.deployed();
     let token = await ProtocolGasFuturesTokenArtifact.deployed();
     let tokenName = await token.name.call();
-    
+
     let fiveETH = Number(web3.toWei(5,'ether'));
     let deposit1 = await dex.depositEther({ from: bidder1, value: fiveETH });
     assert.web3Event(deposit1, {
@@ -75,17 +83,6 @@ contract('In Protocol', function(accounts) {
         'user': bidder1,
         'value': fiveETH,
         'balance': fiveETH
-      }
-    });
-    let bid1 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 10, 0x0, { from: bidder1 });
-    assert.web3Event(bid1, {
-      'event': 'NewOrder',
-      'args': {
-        'tokenA': tokenName, 
-        'tokenB': 'ETH', 
-        'orderType': 'Bid', 
-        'volume': gasFutureId.toNumber(),
-        'price': 10
       }
     });
 
@@ -99,17 +96,6 @@ contract('In Protocol', function(accounts) {
         'balance': fiveETH
       }
     });
-    let bid2 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 20, 0x1, { from: bidder2 });
-    assert.web3Event(bid2, {
-      'event': 'NewOrder',
-      'args': {
-        'tokenA': tokenName, 
-        'tokenB': 'ETH', 
-        'orderType': 'Bid', 
-        'volume': gasFutureId.toNumber(),
-        'price': 20
-      }
-    });
 
     let deposit3 = await dex.depositEther({ from: bidder3, value: fiveETH });
     assert.web3Event(deposit3, {
@@ -121,53 +107,82 @@ contract('In Protocol', function(accounts) {
         'balance': fiveETH
       }
     });
-    let bid3 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureId, 30, 0x2, { from: bidder3 });
-    assert.web3Event(bid3, {
-      'event': 'NewOrder',
-      'args': {
-        'tokenA': tokenName, 
-        'tokenB': 'ETH', 
-        'orderType': 'Bid', 
-        'volume': gasFutureId.toNumber(),
-        'price': 30
-      }
-    });
 
+    for(var i = 0; i < gasFutureIds.length; i++){
+      
+      let bid1 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureIds[i], 10, 0x0, { from: bidder1 });
+      assert.web3Event(bid1, {
+        'event': 'NewOrder',
+        'args': {
+          'tokenA': tokenName, 
+          'tokenB': 'ETH', 
+          'orderType': 'Bid', 
+          'volume': gasFutureIds[i].toNumber(),
+          'price': 10
+        }
+      });
+
+      let bid2 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureIds[i], 20, 0x1, { from: bidder2 });
+      assert.web3Event(bid2, {
+        'event': 'NewOrder',
+        'args': {
+          'tokenA': tokenName, 
+          'tokenB': 'ETH', 
+          'orderType': 'Bid', 
+          'volume': gasFutureIds[i].toNumber(),
+          'price': 20
+        }
+      });
+
+      let bid3 = await dex.bidOrderERC721(tokenName, 'ETH', gasFutureIds[i], 30, 0x2, { from: bidder3 });
+      assert.web3Event(bid3, {
+        'event': 'NewOrder',
+        'args': {
+          'tokenA': tokenName, 
+          'tokenB': 'ETH', 
+          'orderType': 'Bid', 
+          'volume': gasFutureIds[i].toNumber(),
+          'price': 30
+        }
+      });
+    }
 
   });
 
   it('dex should run auction', async () => {
 
-    let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
-    let dex = await DexArtifact.deployed();
-    let token = await ProtocolGasFuturesTokenArtifact.deployed();
-    let tokenName = await token.name.call();
+    for(var i = 0; i < gasFutureIds.length; i++){
+      let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
+      let dex = await DexArtifact.deployed();
+      let token = await ProtocolGasFuturesTokenArtifact.deployed();
+      let tokenName = await token.name.call();
 
-    let auctionTx = await protocolInstance.runAuction(gasFutureId, { from: miner });
-    assert.web3Event(auctionTx, {
-      'event': 'AuctionResult',
-      'args': {
-        'id': gasFutureId.toNumber(), 
-        'price': 30
+      let auctionTx = await protocolInstance.runAuction(gasFutureIds[i], { from: miner });
+      assert.web3Event(auctionTx, {
+        'event': 'AuctionResult',
+        'args': {
+          'id': gasFutureIds[i].toNumber(), 
+          'price': 30
+        }
+      });
+
+      try{
+        let withdrawTx1 = await dex.withdrawalNFToken(tokenName, gasFutureIds[i], { from: bidder1 });
+        assert.fail('should not withdraw');
+      }catch(e){
       }
-    });
 
-    try{
-      let withdrawTx1 = await dex.withdrawalNFToken(tokenName,gasFutureId, { from: bidder1 });
-      assert.fail('should not withdraw');
-    }catch(e){
+      let withdrawTx3 = await dex.withdrawalNFToken(tokenName, gasFutureIds[i], { from: bidder3 });
+      assert.web3Event(withdrawTx3, {
+        'event': 'Withdrawal',
+        'args': {
+          'symbolName': tokenName, 
+          'user': bidder3, 
+          'value': gasFutureIds[i].toNumber(), 
+          'balance': 1,
+        }
+      });
     }
-
-    let withdrawTx3 = await dex.withdrawalNFToken(tokenName,gasFutureId, { from: bidder3 });
-    assert.web3Event(withdrawTx3, {
-      'event': 'Withdrawal',
-      'args': {
-        'symbolName': tokenName, 
-        'user': bidder3, 
-        'value': gasFutureId.toNumber(), 
-        'balance': 1,
-      }
-    });
 
   });
 
