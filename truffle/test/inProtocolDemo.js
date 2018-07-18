@@ -152,6 +152,23 @@ contract('In Protocol', function(accounts) {
       }
     });
 
+    try{
+      let withdrawTx1 = await dex.withdrawalNFToken(tokenName,gasFutureId, { from: bidder1 });
+      assert.fail('should not withdraw');
+    }catch(e){
+    }
+
+    let withdrawTx3 = await dex.withdrawalNFToken(tokenName,gasFutureId, { from: bidder3 });
+    assert.web3Event(withdrawTx3, {
+      'event': 'Withdrawal',
+      'args': {
+        'symbolName': tokenName, 
+        'user': bidder3, 
+        'value': gasFutureId.toNumber(), 
+        'balance': 1,
+      }
+    });
+
   });
 
 });

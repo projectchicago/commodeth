@@ -118,13 +118,12 @@ contract Dex {
 
     function withdrawalNFToken(string name, uint tokenId) public {
         require(dex.nftokenIndex[name] != 0);
-        require(dex.nftokens[dex.tokenIndex[name]].existing[tokenId] == true);
-        require(dex.nftokens[dex.tokenIndex[name]].owner[tokenId] == msg.sender);
+        require(dex.nftokens[dex.nftokenIndex[name]].existing[tokenId] == true);
+        require(dex.nftokens[dex.nftokenIndex[name]].owner[tokenId] == msg.sender);
         ERC721 token = ERC721(dex.nftokens[dex.nftokenIndex[name]].tokenAddr);
         dex.nftokens[dex.nftokenIndex[name]].existing[tokenId] = false;
         token.transferFrom(address(this), msg.sender, tokenId);
         emit Withdrawal(dex.nftokens[dex.nftokenIndex[name]].symbolName, msg.sender, tokenId, 1);
-
     }
 
     //buy (volume) "tokenTo" with (volume * price) "tokenFrom" [tokenFrom][tokenTo] 
