@@ -25,7 +25,7 @@ module.exports = function(deployer, network, accounts) {
       [ BlockSpaceToken ],
       [ ProtocolGasFuturesToken ],
       [ ERC20Token ],
-      [ Mock ]
+      //[ Mock ]
     ]).then( () => {
       return deployer.deploy([
         [ ProtocolGasFutures, ProtocolGasFuturesToken.address, { from: dexAdmin } ],
@@ -34,11 +34,10 @@ module.exports = function(deployer, network, accounts) {
     }).then( function(instance) {
       console.log(instance);
       deployer.link(DexLib, Dex);
-      return [instance[0], deployer.deploy(Dex, dexAdmin, period, { from: dexAdmin, gas: "8000000" })];
-    }).then( function(instance) {
-        console.log(instance[1].address);
-        return instance[0].setDex.call(instance[1].address, { from: dexAdmin });
-    });
+      return deployer.deploy(Dex, dexAdmin, period, { from: dexAdmin, gas: "8000000" }).then(function (dex) {
+        instance[0].setDex(dex.address, {from: dexAdmin})
+       });
+    }); 
   }else if(network === "geth"){
     deployer.deploy([
       [ ProtocolGasFuturesToken ],
