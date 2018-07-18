@@ -9,25 +9,43 @@ var Utils = require('./Utils')(DexArtifact);
 
 contract('In Protocol', function(accounts) {
 
-  let web3 = ProtocolGasFuturesArtifact.web3;
+   let web3 = ProtocolGasFuturesArtifact.web3;
+   try {
+      web3.personal.importRawKey("1111111111111111111111111110111111111111111111111111111111111110", "password");
+      web3.personal.importRawKey("1111111111111111111111110111111111111111111111111111111111111100", "password1");
+      web3.personal.importRawKey("1111111111011111111111111111111111111111111111111111111111111000", "password2");
+      web3.personal.importRawKey("1100111111111111111111111110111111111111111111111111111111111110", "password");
+   }
+   catch(e) {}
 
-  let dexAdmin = accounts[0];
-  let miner = web3.eth.coinbase;
-  let bidder1 = accounts[2];
-  let bidder2 = accounts[3];
-  let bidder3 = accounts[4];
-  let gasFutureIds = [];
+   console.log(web3.eth.accounts);
+   web3.personal.unlockAccount("0xe035e5542e113f144286847c7b97a1da110df49f", "password");
+   web3.personal.unlockAccount("0xd9ea12a4b2fd5ea63f73f4e1eddcbfd0aad41638", "password1");
+   web3.personal.unlockAccount("0xa8b1d1c085f807b3b07c86f809ae5cf05e24093b", "password2");
+   web3.personal.unlockAccount("0x90f6e4681c51ac40223d39d7092c5cf1ac8ec0ee", "password");
+   let dexAdmin = "0xe035e5542e113f144286847c7b97a1da110df49f";
+   let miner = web3.eth.coinbase;
+   let bidder1 = "0xd9ea12a4b2fd5ea63f73f4e1eddcbfd0aad41638";
+   let bidder2 = "0xa8b1d1c085f807b3b07c86f809ae5cf05e24093b";
+   let bidder3 = "0x90f6e4681c51ac40223d39d7092c5cf1ac8ec0ee";
+   let gasFutureIds = [];
+   let fiveETH = Number(web3.toWei(5,'ether'));
+   web3.eth.sendTransaction({ from: miner, to: dexAdmin, value: fiveETH * 10 });
+   web3.eth.sendTransaction({ from: miner, to: bidder1, value: fiveETH * 10 });
+   web3.eth.sendTransaction({ from: miner, to: bidder2, value: fiveETH * 10 });
+   web3.eth.sendTransaction({ from: miner, to: bidder3, value: fiveETH * 10 });
 
   it('DEX admin should be able to add token to DEX', async() => {
-
     let dex = await DexArtifact.deployed();
     let token = await ProtocolGasFuturesTokenArtifact.deployed();
-
     let tokenName = await token.name.call();
     let exists = await dex.checkToken.call(tokenName);
     if(!exists){
       Utils.log(tokenName + " doesn't exist in DEX");
       Utils.log("Adding " + tokenName + " to DEX");
+      Utils.log(token.address);
+      Utils.log(dexAdmin);
+
       let addTx = await dex.addNFToken(token.address, tokenName, { from: dexAdmin });
       let id = await token.totalSupply.call();
     }
@@ -74,7 +92,6 @@ contract('In Protocol', function(accounts) {
     let token = await ProtocolGasFuturesTokenArtifact.deployed();
     let tokenName = await token.name.call();
 
-    let fiveETH = Number(web3.toWei(5,'ether'));
     let deposit1 = await dex.depositEther({ from: bidder1, value: fiveETH });
     assert.web3Event(deposit1, {
       'event': 'Deposit',
