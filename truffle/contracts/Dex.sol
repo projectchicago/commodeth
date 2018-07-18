@@ -176,7 +176,10 @@ contract Dex {
         require(dex.freeBal[msg.sender][idxft] >= price);
         DexLib.Order storage order;
         order.initOrder(msg.sender, 1, price, nonce, block.number);
-        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], dex.currentPeriod(block.number), 
+        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], 
+            DexLib.currentPeriod(dex.lenPeriod, 
+                dex.nftokens[idxnft].batches[tokenId].timestamp[dex.nftokens[idxnft].batches[tokenId].batchTail],
+                block.number), 
             order, DexLib.OrderType.Bid);
         dex.freeBal[msg.sender][idxft] = dex.freeBal[msg.sender][idxft].sub(price);
 
@@ -197,8 +200,7 @@ contract Dex {
         dex.nftokens[idxnft].tradingToken[tokenId] = idxft;
         DexLib.Order storage order;
         order.initOrder(msg.sender, 1, price, nonce, block.number);
-        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], dex.currentPeriod(block.number), 
-            order, DexLib.OrderType.Ask);
+        DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], block.number, order, DexLib.OrderType.Ask);
 
         emit NewOrder(nft, ft,  "Ask", price, tokenId);
     }
@@ -228,6 +230,7 @@ contract Dex {
 
     //event Sort(string src, uint[] arr);
     //event OrderNumber(string src, uint num);
+    //event Blocknumber(uint a, uint period, uint blocknumber);
 
     function settleERC721(string nft, uint tokenId) public returns (uint) {
         require(dex.nftokenIndex[nft] != 0);

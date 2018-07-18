@@ -120,8 +120,12 @@ library DexLib {
         }
     }
 
-    function currentPeriod(Dex storage self, uint cur) public view returns (uint) {
-        return ((cur - self.staPeriod) / self.lenPeriod) * self.lenPeriod + self.staPeriod;
+    function currentPeriod(Dex storage dex, uint cur) public view returns(uint) {
+        return ((cur - dex.staPeriod) / dex.lenPeriod) * dex.lenPeriod + dex.staPeriod;
+    }
+
+    function currentPeriod(uint period, uint sta, uint cur) public view returns (uint) {
+        return ((cur - sta) / period) * period + sta;
     }
 
     /*    function updatePeriod(Dex storage self) public {
@@ -333,7 +337,7 @@ library DexLib {
             if (0 < self.bidBook[cur].numOrder || 0 < self.askBook[cur].numOrder) {
                 if (cur == self.batchTail) {
                     self.batchTail = updateBatchIndex(self.batchTail);
-                    self.timestamp[self.batchTail] = currentPeriod(dex, block.number);
+                    self.timestamp[self.batchTail] = currentPeriod(dex.lenPeriod, self.timestamp[cur], block.number);
                     self.bidBook[self.batchTail].numOrder = 0;
                     self.askBook[self.batchTail].numOrder = 0;
                 }
@@ -377,11 +381,13 @@ library DexLib {
     }
 
     //event Sort(string src, uint[] arr);
+    //event Blocknumber(uint a, uint period, uint blocknumber);
 
     function settleNFT(Dex storage dex, uint8 nft, uint tokenId) internal returns(uint) {
         Batch storage self = dex.nftokens[nft].batches[tokenId];
         require(self.batchHead != self.batchTail);
         require(self.timestamp[updateBatchIndex(self.batchHead)] + dex.lenPeriod <= block.number);
+        //emit Blocknumber(self.timestamp[updateBatchIndex(self.batchHead)], dex.lenPeriod, block.number);
 
         uint next = updateBatchIndex(self.batchHead);
         uint[] memory sortedBid = sortOrderBook(self.bidBook[next], OrderType.Bid);
