@@ -1,3 +1,4 @@
+var Web3 = require('web3');
 
 /*
  * NB: since truffle-hdwallet-provider 0.0.5 you must wrap HDWallet providers in a 
@@ -25,6 +26,9 @@ module.exports = {
       gasPrice: 1
     },
     geth: {
+      provider: function(){
+        return new Web3.providers.HttpProvider("http://localhost:8545");
+      },
       network_id: '*',
       gas: 10000000,
       gasPrice: 1

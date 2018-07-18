@@ -14,7 +14,7 @@
 
 1. Start ganache-cli client or truffle's test client
 
-		ganache-cli -p 9545 -l 10000000
+		ganache-cli -p 9545 -l 10000000 -m "crawl tip sword hair master age around opera notice glow guilt draw"
 
 2. Deploy contracts with the following command:
 
