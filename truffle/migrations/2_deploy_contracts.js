@@ -7,7 +7,7 @@ var Dex = artifacts.require("./Dex");
 
 var Mock = artifacts.require("./Mock");
 
-var period = 12;
+var period = 16;
 
 module.exports = function(deployer, network, accounts) {
   if(network === "development"){

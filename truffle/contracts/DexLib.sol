@@ -381,13 +381,13 @@ library DexLib {
     }
 
     //event Sort(string src, uint[] arr);
-    //event Blocknumber(uint a, uint period, uint blocknumber);
+    event Blocknumber(uint a, uint period, uint blocknumber);
 
     function settleNFT(Dex storage dex, uint8 nft, uint tokenId) internal returns(uint) {
         Batch storage self = dex.nftokens[nft].batches[tokenId];
         require(self.batchHead != self.batchTail);
         require(self.timestamp[updateBatchIndex(self.batchHead)] + dex.lenPeriod <= block.number);
-        //emit Blocknumber(self.timestamp[updateBatchIndex(self.batchHead)], dex.lenPeriod, block.number);
+        emit Blocknumber(self.timestamp[updateBatchIndex(self.batchHead)], dex.lenPeriod, block.number);
 
         uint next = updateBatchIndex(self.batchHead);
         uint[] memory sortedBid = sortOrderBook(self.bidBook[next], OrderType.Bid);
