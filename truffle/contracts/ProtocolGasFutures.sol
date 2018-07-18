@@ -1,8 +1,10 @@
 pragma solidity ^0.4.23;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./ProtocolGasFuturesToken.sol";
+import "./Dex.sol";
 
 contract ProtocolGasFutures {
   
@@ -10,40 +12,60 @@ contract ProtocolGasFutures {
 
   ProtocolGasFuturesToken private token;
 
-  mapping (uint => uint) public ids;
+  mapping (uint => uint[]) public ids;
+  uint public numFuturesIssued = 0;
+
+  Dex dex;
 
   event CreatedGasFuture(uint indexed id);
+  event AuctionResult(uint id, uint price);
 
-  modifier onlyProtocol{
-    // FIXME
-    //require(msg.sender == address(this));
-    _;
-  }
-
-  constructor(ProtocolGasFuturesToken _token) public{
+  constructor(ProtocolGasFuturesToken _token) public {
     token = _token;  
   }
 
-  function () public payable{
+  function issueToken(uint256 expiry, uint256 gasLimit) internal {
+    uint256 id = token.issue(expiry-100, expiry, gasLimit);
+
+    // transfer token to the dex
+    token.approve(dex, id);
+    dex.depositNFToken(token.name(), id);
+    dex.askOrderERC721(token.name(), "ETH", id, 0, 1);
+ 
+    // update internal bookkeeping
+    numFuturesIssued++;
+    ids[expiry].push(id);
+    emit CreatedGasFuture(id);
   }
   
-  function issue() onlyProtocol public returns (uint)  {
+  function issue(Dex _dex) public {
+    dex = _dex;
+
     uint height = block.number;
-    uint gasLimit = 1000000;
-    uint id = token.issue(height+100, height+1000, gasLimit);
+    uint gasLimit = 350000;
 
-    ids[height+1000] = id;
-
-    emit CreatedGasFuture(id);
-
-    return id;
+    issueToken(height+5760, gasLimit);
+    issueToken(height+40320, gasLimit);
+    issueToken(height+175200, gasLimit);
+    issueToken(height+2102400, gasLimit);
   }
 
+  function runAuction(uint _id) public {
 
-  function settle() onlyProtocol public returns (bool) {
-    uint id = ids[block.number];
-    bool executed = token.settle(id);
+    uint price = dex.settleERC721(token.name(), _id);
 
-    return executed;
+    emit AuctionResult(_id, price);
+
+  }
+
+  function settle() public returns (bool) {
+    uint[] ids_to_settle = ids[block.number];
+    for (uint i = 0; i < ids_to_settle.length; i++) {
+        bool executed = token.settle(ids_to_settle[i]);
+        if (!executed)
+            return false;
+    }
+
+    return true;
   }
 }

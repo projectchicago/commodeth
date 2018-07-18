@@ -13,6 +13,7 @@ contract ProtocolGasFuturesToken is ERC721Token {
   */
   
     struct Derivative {
+        uint blockCreated;
         uint startHeight;
         uint executeHeight;
         uint gasLimit; // refers to the amount of gas in a block
@@ -31,7 +32,7 @@ contract ProtocolGasFuturesToken is ERC721Token {
     function issue(uint _startHeight, uint _executeHeight, uint _gasLimit) public payable returns (uint)  {
       
       uint id = totalSupply();
-      derivativeData[id] = Derivative(_startHeight, _executeHeight, _gasLimit, 0, "", address(0x0)); 
+      derivativeData[id] = Derivative(block.number, _startHeight, _executeHeight, _gasLimit, 0, "", address(0x0)); 
       
       emit DerivativeCreated(id, _startHeight, _executeHeight, _gasLimit);
       

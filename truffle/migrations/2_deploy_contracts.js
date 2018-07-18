@@ -7,6 +7,8 @@ var Dex = artifacts.require("./Dex");
 
 var Mock = artifacts.require("./Mock");
 
+var period = 12;
+
 module.exports = function(deployer, network, accounts) {
   if(network === "development"){
     deployer.deploy([
@@ -21,7 +23,14 @@ module.exports = function(deployer, network, accounts) {
       ]);
     }).then( () => {
       deployer.link(DexLib, Dex);
-      var period = 10;
+      return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
+    });
+  }else if(network === "geth"){
+    deployer.deploy([
+      [ ProtocolGasFuturesToken ],
+      [ DexLib ]
+    ]).then( () => {
+      deployer.link(DexLib, Dex);
       return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
     });
   }
