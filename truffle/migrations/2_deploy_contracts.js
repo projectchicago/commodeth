@@ -31,9 +31,13 @@ module.exports = function(deployer, network, accounts) {
         [ ProtocolGasFutures, ProtocolGasFuturesToken.address, { from: dexAdmin } ],
         [ DexLib ]
       ]);
-    }).then( () => {
+    }).then( function(instance) {
+      console.log(instance);
       deployer.link(DexLib, Dex);
-      return deployer.deploy(Dex, dexAdmin, period, { from: dexAdmin, gas: "8000000" });
+      return [instance[0], deployer.deploy(Dex, dexAdmin, period, { from: dexAdmin, gas: "8000000" })];
+    }).then( function(instance) {
+        console.log(instance[1].address);
+        return instance[0].setDex.call(instance[1].address, { from: dexAdmin });
     });
   }else if(network === "geth"){
     deployer.deploy([

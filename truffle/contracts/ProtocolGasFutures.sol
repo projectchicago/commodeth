@@ -24,11 +24,6 @@ contract ProtocolGasFutures {
     token = _token;  
   }
 
-  function () {
-      issue(dex);
-      //settle();
-  }
-
   function issueToken(uint256 expiry, uint256 gasLimit) internal {
     uint256 id = token.issue(expiry-100, expiry, gasLimit);
 
@@ -42,10 +37,9 @@ contract ProtocolGasFutures {
     ids[expiry].push(id);
     emit CreatedGasFuture(id);
   }
-  
-  function issue(Dex _dex) public {
-    dex = _dex;
 
+  
+  function issue() public {
     uint height = block.number;
     uint gasLimit = 350000;
 
@@ -53,6 +47,10 @@ contract ProtocolGasFutures {
     issueToken(height+40320, gasLimit);
     issueToken(height+175200, gasLimit);
     issueToken(height+2102400, gasLimit);
+  }
+
+  function setDex(Dex _dex) public {
+    dex = _dex;
   }
 
   function runAuction(uint _id) public {
