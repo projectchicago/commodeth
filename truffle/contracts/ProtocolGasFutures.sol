@@ -46,9 +46,22 @@ contract ProtocolGasFutures {
     // Assume average block time is 15 seconds
     issueToken(height+5760, gasLimit); // 24 hours
     issueToken(height+40320, gasLimit); // 7 days
-    issueToken(height+175200, gasLimit); // ~ month
+    issueToken(height+175200, gasLimit); // 1 month
     issueToken(height+2102400, gasLimit); // 365 days
   }
+
+  function settle() public returns (bool) {
+    uint[] ids_to_settle = ids[block.number];
+    for (uint i = 0; i < ids_to_settle.length; i++) {
+        bool executed = token.settle(ids_to_settle[i]);
+        if (!executed)
+            return false;
+    }
+
+    return true;
+  }
+
+
 
   function setDex(Dex _dex) public {
     dex = _dex;
@@ -62,14 +75,4 @@ contract ProtocolGasFutures {
 
   }
 
-  function settle() public returns (bool) {
-    uint[] ids_to_settle = ids[block.number];
-    for (uint i = 0; i < ids_to_settle.length; i++) {
-        bool executed = token.settle(ids_to_settle[i]);
-        if (!executed)
-            return false;
-    }
-
-    return true;
-  }
 }
