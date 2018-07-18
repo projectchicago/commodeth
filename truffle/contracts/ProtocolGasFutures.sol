@@ -13,6 +13,7 @@ contract ProtocolGasFutures {
   ProtocolGasFuturesToken private token;
 
   mapping (uint => uint[]) public ids;
+  uint public numFuturesIssued = 0;
 
   Dex dex;
 
@@ -32,6 +33,7 @@ contract ProtocolGasFutures {
     dex.askOrderERC721(token.name(), "ETH", id, 0, 1);
  
     // update internal bookkeeping
+    numFuturesIssued++;
     ids[expiry].push(id);
     emit CreatedGasFuture(id);
   }
