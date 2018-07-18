@@ -22,8 +22,17 @@ contract('In Protocol', function(accounts) {
    let web3 = ProtocolGasFuturesArtifact.web3;
    try {
       web3.personal.importRawKey("1111111111111111111111111110111111111111111111111111111111111110", "password");
+   }
+   catch(e) {}
+   try {
       web3.personal.importRawKey("1111111111111111111111110111111111111111111111111111111111111100", "password1");
+   }
+   catch(e) {}
+   try {
       web3.personal.importRawKey("1111111111011111111111111111111111111111111111111111111111111000", "password2");
+   }
+   catch(e) {}
+   try {
       web3.personal.importRawKey("1100111111111111111111111110111111111111111111111111111111111110", "password");
    }
    catch(e) {}

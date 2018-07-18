@@ -27,7 +27,7 @@ module.exports = {
     },
     geth: {
       provider: function(){
-        return new Web3.providers.HttpProvider("http://localhost:8545");
+        return new Web3.providers.HttpProvider("http://localhost:9545");
       },
       network_id: '*',
       gas: 10000000,
