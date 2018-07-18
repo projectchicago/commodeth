@@ -48,6 +48,17 @@ contract Dex {
     function checkToken(string token) public view returns (bool) {
         return (dex.tokenIndex[token] != 0 || dex.nftokenIndex[token] != 0);
     }
+
+    function auctionPeriod(string token, uint tokenId) public view returns (uint, uint) {
+        require(dex.nftokenIndex[token] != 0);
+        require(dex.nftokens[dex.nftokenIndex[token]].existing[tokenId] == true);
+        require(dex.nftokens[dex.nftokenIndex[token]].tradingToken[tokenId] != 0);
+
+        return (dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].timestamp[
+            dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchTail],
+            dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].timestamp[
+            dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchTail] + dex.lenPeriod);
+    }
         
     function addToken (address addr, string name) public {
         require(msg.sender == dex.admin);
