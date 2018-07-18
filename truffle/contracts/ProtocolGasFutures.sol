@@ -17,7 +17,7 @@ contract ProtocolGasFutures {
   Dex dex;
 
   event CreatedGasFuture(uint indexed id);
-  event Debug(uint id, address owner);
+  event AuctionResult(uint id, uint price);
 
   constructor(ProtocolGasFuturesToken _token) public{
     token = _token;  
@@ -44,9 +44,11 @@ contract ProtocolGasFutures {
     return id;
   }
 
-  function runAuction(uint _id) public{
+  function runAuction(uint _id) public {
 
-    dex.settleERC721(token.name(), _id);
+    uint price = dex.settleERC721(token.name(), _id);
+
+    emit AuctionResult(_id, price);
 
   }
 

@@ -227,13 +227,16 @@ contract Dex {
         dex.settleNFT(sortedBid, sortedAsk, idxnft, tokenId);
     }
 
-    function settleERC721(string nft, uint tokenId) public {
+    //event Sort(string src, uint[] arr);
+    //event OrderNumber(string src, uint num);
+
+    function settleERC721(string nft, uint tokenId) public returns (uint) {
         require(dex.nftokenIndex[nft] != 0);
         uint8 idxnft = dex.nftokenIndex[nft];
 
         require(dex.nftokens[idxnft].existing[tokenId] == true);
         require(dex.nftokens[idxnft].tradingToken[tokenId] != 0);
 
-        dex.settleNFT(idxnft, tokenId);
+        return dex.settleNFT(idxnft, tokenId);
     }
 }

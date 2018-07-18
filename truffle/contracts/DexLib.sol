@@ -141,6 +141,9 @@ library DexLib {
     }
     }
      */
+
+    //event OrderNumber(string src, uint num);
+
     function insertOrder(Batch storage self, uint timestamp, Order storage order, 
             OrderType t) internal {
         if (self.batchHead == self.batchTail || self.timestamp[self.batchTail] < timestamp) {
@@ -153,10 +156,12 @@ library DexLib {
             copyOrder(self.bidBook[self.batchTail].orders[self.bidBook[self.batchTail].numOrder], 
                     order);
             self.bidBook[self.batchTail].numOrder++;
+            //emit OrderNumber("inserOrder bid", self.bidBook[self.batchTail].numOrder);
         } else {
             copyOrder(self.askBook[self.batchTail].orders[self.askBook[self.batchTail].numOrder], 
                     order);
             self.askBook[self.batchTail].numOrder++;
+            //emit OrderNumber("insertOrder ask",self.bidBook[self.batchTail].numOrder);
         }
     }
 
@@ -192,10 +197,15 @@ library DexLib {
         }
 
     function sortOrderBook(OrderBook storage self, OrderType t) internal returns(uint[]) {
-        uint[] sortedOrder;
+        
+        //emit OrderNumber("sortOrderBook", self.numOrder);
+
+        uint[] memory sortedOrder = new uint[](MAXORDER);
         for (uint i = 0; i < self.numOrder; i++) {
-            sortedOrder.push(i);
+            sortedOrder[i] = i;
         }
+
+        //emit Sort("sortOrderBook:init",sortedOrder);
 
         uint k;
         for (i = 0; i < self.numOrder; i++) {
@@ -216,6 +226,8 @@ library DexLib {
             }
         }
 
+        //emit Sort("sortOrderBook:after",sortedOrder);
+
         return sortedOrder;
     }
 
@@ -230,11 +242,11 @@ library DexLib {
         uint i = 0;
         uint j = 0;
         Order storage orderBid;
-        if (i < sortedBid.length) orderBid = self.bidBook[cur].orders[sortedBid[i]];
+        if (i < self.bidBook[cur].numOrder) orderBid = self.bidBook[cur].orders[sortedBid[i]];
         Order storage orderAsk;
-        if (j < sortedAsk.length) orderAsk = self.askBook[cur].orders[sortedAsk[j]];
+        if (j < self.askBook[cur].numOrder) orderAsk = self.askBook[cur].orders[sortedAsk[j]];
 
-        for (; i < sortedBid.length && j < sortedAsk.length;) {
+        for (; i < self.bidBook[cur].numOrder && j < self.askBook[cur].numOrder;) {
             if (orderBid.price >= orderAsk.price) {
                 //how to set the settlement price when bid and ask prices are not equal???
                 uint price = (orderBid.price + orderAsk.price) / 2;
@@ -247,7 +259,7 @@ library DexLib {
                 orderBid.volume -= volume;
                 if (orderBid.volume == 0) {
                     i++;
-                    if (i < sortedBid.length) orderBid = self.bidBook[cur].orders[sortedBid[i]];
+                    if (i < self.bidBook[cur].numOrder) orderBid = self.bidBook[cur].orders[sortedBid[i]];
                 }
 
                 //sell (volume) "tokenFrom" for (volume * price) "tokenTo" [tokenTo][tokenFrom]
@@ -257,7 +269,7 @@ library DexLib {
                 orderAsk.volume -= volume;
                 if (orderAsk.volume == 0) {
                     j++;
-                    if (j < sortedAsk.length) orderAsk = self.askBook[cur].orders[sortedAsk[j]];
+                    if (j < self.askBook[cur].numOrder) orderAsk = self.askBook[cur].orders[sortedAsk[j]];
                 }
 
                 emit SettledOrder(dex.tokens[tokenA].symbolName, dex.tokens[tokenB].symbolName, price, volume);
@@ -266,7 +278,7 @@ library DexLib {
             }
         }
 
-        if (i < sortedBid.length || j < sortedAsk.length) {
+        if (i < self.bidBook[cur].numOrder || j < self.askBook[cur].numOrder) {
             if (cur == self.batchTail) {
                 self.batchTail = updateBatchIndex(self.batchTail);
                 self.timestamp[self.batchTail] = currentPeriod(dex, block.number);
@@ -274,12 +286,12 @@ library DexLib {
                 self.askBook[self.batchTail].numOrder = 0;
             }
             uint next = updateBatchIndex(cur);
-            for (; i < sortedBid.length; i++) {
+            for (; i < self.bidBook[cur].numOrder; i++) {
                 orderBid = self.bidBook[cur].orders[sortedBid[i]];
                 copyOrder(self.bidBook[next].orders[self.bidBook[next].numOrder], orderBid);
                 self.bidBook[next].numOrder++;
             }
-            for (; j < sortedAsk.length; j++) {
+            for (; j < self.askBook[cur].numOrder; j++) {
                 orderAsk = self.askBook[cur].orders[sortedAsk[j]];
                 copyOrder(self.askBook[next].orders[self.askBook[next].numOrder], orderAsk);
                 self.askBook[next].numOrder++;
@@ -290,12 +302,12 @@ library DexLib {
     }    
 
     function firstPriceAuctionNFT(Dex storage dex, uint[] sortedBid, uint[] sortedAsk, 
-            uint8 nft, uint tokenId) internal {
+            uint8 nft, uint tokenId) internal returns(uint) {
         uint8 ft = dex.nftokens[nft].tradingToken[tokenId];
 
         Batch storage self = dex.nftokens[nft].batches[tokenId];
         uint cur = updateBatchIndex(self.batchHead);
-        if (sortedBid.length > 0 && sortedAsk.length > 0 &&
+        if (self.bidBook[cur].numOrder > 0 && self.askBook[cur].numOrder > 0 &&
             self.bidBook[cur].orders[sortedBid[0]].price >= 
             self.askBook[cur].orders[sortedAsk[0]].price) {
             Order storage orderBid = self.bidBook[cur].orders[sortedBid[0]];
@@ -315,8 +327,10 @@ library DexLib {
 
             dex.nftokens[nft].tradingToken[tokenId] = 0;
             initBatch(self);
+
+            return price;
         } else {
-            if (0 < sortedBid.length || 0 < sortedAsk.length) {
+            if (0 < self.bidBook[cur].numOrder || 0 < self.askBook[cur].numOrder) {
                 if (cur == self.batchTail) {
                     self.batchTail = updateBatchIndex(self.batchTail);
                     self.timestamp[self.batchTail] = currentPeriod(dex, block.number);
@@ -325,12 +339,12 @@ library DexLib {
                 }
                 uint next = updateBatchIndex(cur);
                 uint i;
-                for (i = 0; i < sortedBid.length; i++) {
+                for (i = 0; i < self.bidBook[cur].numOrder; i++) {
                     orderBid = self.bidBook[cur].orders[sortedBid[i]];
                     copyOrder(self.bidBook[next].orders[self.bidBook[next].numOrder], orderBid);
                     self.bidBook[next].numOrder++;
                 }
-                for (i = 0; i < sortedAsk.length; i++) {
+                for (i = 0; i < self.askBook[cur].numOrder; i++) {
                     orderAsk = self.askBook[cur].orders[sortedAsk[i]];
                     copyOrder(self.askBook[next].orders[self.askBook[next].numOrder], orderAsk);
                     self.askBook[next].numOrder++;
@@ -338,6 +352,7 @@ library DexLib {
 
             }
             self.batchHead = cur;
+            return 0;
         }
     }    
 
@@ -361,16 +376,18 @@ library DexLib {
         firstPriceAuctionNFT(dex, sortedBid, sortedAsk, nft, tokenId);
     }
 
+    //event Sort(string src, uint[] arr);
 
-    function settleNFT(Dex storage dex, uint8 nft, uint tokenId) internal returns(Order) {
+    function settleNFT(Dex storage dex, uint8 nft, uint tokenId) internal returns(uint) {
         Batch storage self = dex.nftokens[nft].batches[tokenId];
         require(self.batchHead != self.batchTail);
         require(self.timestamp[updateBatchIndex(self.batchHead)] + dex.lenPeriod <= block.number);
 
         uint next = updateBatchIndex(self.batchHead);
         uint[] memory sortedBid = sortOrderBook(self.bidBook[next], OrderType.Bid);
+        //emit Sort("settleNFT", sortedBid);
         uint[] memory sortedAsk = sortOrderBook(self.askBook[next], OrderType.Ask);
-        firstPriceAuctionNFT(dex, sortedBid, sortedAsk, nft, tokenId);
+        return firstPriceAuctionNFT(dex, sortedBid, sortedAsk, nft, tokenId);
     }
 
 }

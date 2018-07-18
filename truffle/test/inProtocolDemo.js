@@ -144,6 +144,13 @@ contract('In Protocol', function(accounts) {
     let tokenName = await token.name.call();
 
     let auctionTx = await protocolInstance.runAuction(gasFutureId, { from: miner });
+    assert.web3Event(auctionTx, {
+      'event': 'AuctionResult',
+      'args': {
+        'id': gasFutureId.toNumber(), 
+        'price': 30
+      }
+    });
 
   });
 
