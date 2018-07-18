@@ -19,7 +19,7 @@ body {
 
 </style>
 <body>
-<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
 <script>
 
@@ -27,64 +27,53 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 1400 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
-var x = d3.scale.linear()
+var x = d3.scaleLinear()
     .range([0, width]);
 
-var y = d3.scale.linear()
+var y = d3.scaleLinear()
     .range([height / 3, 0]);
 
-var color = d3.scale.category10();
+var xAxis = d3.axisBottom(x);
 
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom");
-
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left");
+var yAxis = d3.axisLeft(y);
 
 const generateGraph = (svg, data, x, y, height) => {
-	d3.tsv("data.csv", function(error, _data) {
-	  if (error) throw error;
+  data.forEach(function(d) {
+    d.saleValue = +d.saleValue;
+    d.blockHeight = +d.blockHeight;
+  });
 
-	  data.forEach(function(d) {
-	    d.saleValue = +d.saleValue;
-	    d.blockHeight = +d.blockHeight;
-	  });
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", -6)
+      .style("text-anchor", "end")
+      .text("Execution Block Height");
 
-	  svg.append("g")
-	      .attr("class", "x axis")
-	      .attr("transform", "translate(0," + height + ")")
-	      .call(xAxis)
-	    .append("text")
-	      .attr("class", "label")
-	      .attr("x", width)
-	      .attr("y", -6)
-	      .style("text-anchor", "end")
-	      .text("Execution Block Height");
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Initial Auction Price")
 
-	  svg.append("g")
-	      .attr("class", "y axis")
-	      .call(yAxis)
-	    .append("text")
-	      .attr("class", "label")
-	      .attr("transform", "rotate(-90)")
-	      .attr("y", 6)
-	      .attr("dy", ".71em")
-	      .style("text-anchor", "end")
-	      .text("Initial Auction Price")
-
-	  svg.selectAll(".bars_")
-	      .data(data)
-	    .enter().append("rect")
-	      .attr("class", "bars_")
-	      .attr("x", (d) => x(d.blockHeight))
-	      .attr("y", (d) => y(d.saleValue))
-	      .attr("width", 0.5)
-	      .attr("height", (d) => height - y(d.saleValue))
-	      .style("fill", (d) => color(d.species));
-
-	});
+  svg.selectAll(".bars_")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bars_")
+      .attr("x", (d) => x(d.blockHeight))
+      .attr("y", (d) => y(d.saleValue))
+      .attr("width", 0.5)
+      .attr("height", (d) => height - y(d.saleValue))
+      .style("fill", (d) => "salmon");
 }
 
 const generateData = (count) => {
