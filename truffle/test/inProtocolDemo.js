@@ -81,7 +81,8 @@ contract('In Protocol', function(accounts) {
     Utils.log("Protocol deployed at " + protocolInstance.address);
 
     let tokenName = await token.name.call();
-    let issueTx = await protocolInstance.issue(dex.address, { from: miner });
+    let issueTx = await protocolInstance.issue({ from: miner });
+    //let issueTx = await web3.eth.sendTransaction({from: miner, to: protocolInstance.address, gas: 2000000, gasPrice: 0});
     assert(issueTx.logs.length > 0);
     var expected = [];
     for(var i = 0; i < issueTx.logs.length; i++){
