@@ -10,7 +10,7 @@ contract ProtocolGasFutures {
   
   using SafeMath for uint;
 
-  ProtocolGasFuturesToken private token;
+  ProtocolGasFuturesToken public token;
 
   mapping (uint => uint[]) public ids;
   uint public numFuturesIssued = 0;

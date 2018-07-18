@@ -22,6 +22,23 @@ contract ProtocolGasFuturesToken is ERC721Token {
         address executionAddress; // the address of the smart contract to call
     }
 
+    function getBlockCreated(uint id) public view returns(uint) {
+        return derivativeData[id].blockCreated;
+    }
+
+    function getStartHeight(uint id) public view returns(uint)  {
+        return derivativeData[id].startHeight;
+    }
+    function getEndHeight(uint id) public view returns(uint)  {
+        return derivativeData[id].executeHeight;
+    }
+    function getGasLimit(uint id) public view returns(uint)  {
+        return derivativeData[id].gasLimit;
+    }
+    function getExecutionAddress(uint id) public view returns(address)  {
+        return derivativeData[id].executionAddress;
+    }
+
     event DerivativeCreated(uint indexed id, uint startHeight, uint executeHeight, uint gasLimit);
     event DerivativeSettled(uint indexed id, address indexed miner, address indexed taker, bool executed);
         

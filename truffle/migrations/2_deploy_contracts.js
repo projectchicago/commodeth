@@ -9,6 +9,17 @@ var Mock = artifacts.require("./Mock");
 
 var period = 40;
 
+
+function wait(ms){
+   var start = new Date().getTime();
+   var end = start;
+   while(end < start + ms) {
+     end = new Date().getTime();
+  }
+}
+
+
+
 module.exports = function(deployer, network, accounts) {
   if(network === "development"){
 
@@ -19,11 +30,12 @@ module.exports = function(deployer, network, accounts) {
    let dexAdmin = "0xe035e5542e113f144286847c7b97a1da110df49f";
    web3.personal.unlockAccount(dexAdmin, "password");
    let fiveETH = Number(web3.toWei(5,'ether'));
-   web3.eth.sendTransaction({ from: accounts[0], to: dexAdmin, value: fiveETH * 10 });
+   web3.eth.sendTransaction({ from: accounts[0], to: dexAdmin, value: fiveETH * 1000 });
+   wait(3000);
 
     deployer.deploy([
       [ BlockSpaceToken ],
-      [ ProtocolGasFuturesToken ],
+      [ ProtocolGasFuturesToken, { from: dexAdmin } ],
       [ ERC20Token ],
       //[ Mock ]
     ]).then( () => {
