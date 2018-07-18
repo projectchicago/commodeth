@@ -82,6 +82,8 @@ contract('In Protocol', function(accounts) {
 
     let tokenName = await token.name.call();
     let issueTx = await protocolInstance.issue({ from: miner });
+    console.log("ISSUE");
+    console.log(issueTx);
     //let issueTx = await web3.eth.sendTransaction({from: miner, to: protocolInstance.address, gas: 2000000, gasPrice: 0});
     assert(issueTx.logs.length > 0);
     var expected = [];
