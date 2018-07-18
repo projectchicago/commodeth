@@ -24,6 +24,11 @@ contract ProtocolGasFutures {
     token = _token;  
   }
 
+  function () {
+      issue(dex);
+      //settle();
+  }
+
   function issueToken(uint256 expiry, uint256 gasLimit) internal {
     uint256 id = token.issue(expiry-100, expiry, gasLimit);
 

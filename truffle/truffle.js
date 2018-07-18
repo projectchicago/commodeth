@@ -1,6 +1,4 @@
-var HDWalletProvider = require("truffle-hdwallet-provider");
-
-var mnemonic = "crawl tip sword hair master age around opera notice glow guilt draw";
+var Web3 = require('web3');
 
 /*
  * NB: since truffle-hdwallet-provider 0.0.5 you must wrap HDWallet providers in a 
@@ -28,7 +26,9 @@ module.exports = {
       gasPrice: 1
     },
     geth: {
-      provider: new HDWalletProvider(mnemonic, 'http://127.0.0.1:9545', 0, 10),
+      provider: function(){
+        return new Web3.providers.HttpProvider("http://localhost:9545");
+      },
       network_id: '*',
       gas: 10000000,
       gasPrice: 1

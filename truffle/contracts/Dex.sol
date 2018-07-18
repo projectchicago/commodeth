@@ -55,9 +55,9 @@ contract Dex {
         require(dex.nftokens[dex.nftokenIndex[token]].tradingToken[tokenId] != 0);
 
         return (dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].timestamp[
-            dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchTail],
+            DexLib.updateBatchIndex(dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchHead)],
             dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].timestamp[
-            dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchTail] + dex.lenPeriod);
+            DexLib.updateBatchIndex(dex.nftokens[dex.nftokenIndex[token]].batches[tokenId].batchHead)] + dex.lenPeriod);
     }
         
     function addToken (address addr, string name) public {
@@ -71,7 +71,7 @@ contract Dex {
     }
 
     function addNFToken (address addr, string name) public {
-        require(msg.sender == dex.admin);
+        //require(msg.sender == dex.admin);
         require(!checkToken(name));
         dex.numNFToken++;
         dex.nftokens[dex.numNFToken].initNFToken(addr, name);
@@ -189,7 +189,7 @@ contract Dex {
         order.initOrder(msg.sender, 1, price, nonce, block.number);
         DexLib.insertOrder(dex.nftokens[idxnft].batches[tokenId], 
             DexLib.currentPeriod(dex.lenPeriod, 
-                dex.nftokens[idxnft].batches[tokenId].timestamp[dex.nftokens[idxnft].batches[tokenId].batchTail],
+                dex.nftokens[idxnft].batches[tokenId].timestamp[DexLib.updateBatchIndex(dex.nftokens[idxnft].batches[tokenId].batchHead)],
                 block.number), 
             order, DexLib.OrderType.Bid);
         dex.freeBal[msg.sender][idxft] = dex.freeBal[msg.sender][idxft].sub(price);
