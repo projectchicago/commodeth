@@ -14,7 +14,9 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "openzeppelin-solidity": "1.11.0"
+    "openzeppelin-solidity": "1.11.0",
+    "truffle-contract": "^3.0.6",
+    "truffle-hdwallet-provider": "0.0.5"
   },
   "devDependencies": {
     "truffle-test-utils": "^0.1.0"

@@ -24,5 +24,14 @@ module.exports = function(deployer, network, accounts) {
       var period = 10;
       return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
     });
+  }else if(network === "geth"){
+    deployer.deploy([
+      [ ProtocolGasFuturesToken ],
+      [ DexLib ]
+    ]).then( () => {
+      deployer.link(DexLib, Dex);
+      var period = 10;
+      return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
+    });
   }
 };
