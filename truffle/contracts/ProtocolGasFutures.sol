@@ -12,36 +12,40 @@ contract ProtocolGasFutures {
 
   ProtocolGasFuturesToken private token;
 
-  mapping (uint => uint) public ids;
+  mapping (uint => uint[]) public ids;
 
   Dex dex;
 
   event CreatedGasFuture(uint indexed id);
   event AuctionResult(uint id, uint price);
 
-  constructor(ProtocolGasFuturesToken _token) public{
+  constructor(ProtocolGasFuturesToken _token) public {
     token = _token;  
   }
-  
-  function issue(Dex _dex) public returns (uint){
 
+  function issueToken(uint256 expiry, uint256 gasLimit) internal {
+    uint256 id = token.issue(expiry-100, expiry, gasLimit);
+
+    // transfer token to the dex
+    token.approve(dex, id);
+    dex.depositNFToken(token.name(), id);
+    dex.askOrderERC721(token.name(), "ETH", id, 0, 1);
+ 
+    // update internal bookkeeping
+    ids[expiry].push(id);
+    emit CreatedGasFuture(id);
+  }
+  
+  function issue(Dex _dex) public {
     dex = _dex;
 
     uint height = block.number;
-    uint gasLimit = 1000000;
-    uint id = token.issue(height+100, height+1000, gasLimit);
+    uint gasLimit = 350000;
 
-    token.approve(_dex, id);
-
-    _dex.depositNFToken(token.name(), id);
-
-    _dex.askOrderERC721(token.name(), "ETH", id, 0, 1);
-  
-    ids[height+1000] = id;
-
-    emit CreatedGasFuture(id);
-
-    return id;
+    issueToken(height+5760, gasLimit);
+    issueToken(height+40320, gasLimit);
+    issueToken(height+175200, gasLimit);
+    issueToken(height+2102400, gasLimit);
   }
 
   function runAuction(uint _id) public {
@@ -53,9 +57,13 @@ contract ProtocolGasFutures {
   }
 
   function settle() public returns (bool) {
-    uint id = ids[block.number];
-    bool executed = token.settle(id);
+    uint[] ids_to_settle = ids[block.number];
+    for (uint i = 0; i < ids_to_settle.length; i++) {
+        bool executed = token.settle(ids_to_settle[i]);
+        if (!executed)
+            return false;
+    }
 
-    return executed;
+    return true;
   }
 }
