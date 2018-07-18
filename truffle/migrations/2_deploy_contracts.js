@@ -7,7 +7,7 @@ var Dex = artifacts.require("./Dex");
 
 var Mock = artifacts.require("./Mock");
 
-var period = 16;
+var period = 40;
 
 module.exports = function(deployer, network, accounts) {
   if(network === "development"){
@@ -23,7 +23,7 @@ module.exports = function(deployer, network, accounts) {
       ]);
     }).then( () => {
       deployer.link(DexLib, Dex);
-      return deployer.deploy(Dex, accounts[0], period, { from: accounts[0], gas: "8000000" });
+      return deployer.deploy(Dex, "0xe035e5542e113f144286847c7b97a1da110df49f", period, { from: accounts[0], gas: "8000000" });
     });
   }else if(network === "geth"){
     deployer.deploy([

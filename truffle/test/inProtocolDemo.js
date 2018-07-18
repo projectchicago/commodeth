@@ -44,8 +44,7 @@ contract('In Protocol', function(accounts) {
    web3.eth.sendTransaction({ from: miner, to: bidder1, value: fiveETH * 10 });
    web3.eth.sendTransaction({ from: miner, to: bidder2, value: fiveETH * 10 });
    web3.eth.sendTransaction({ from: miner, to: bidder3, value: fiveETH * 10 });
-    wait(10000);
-
+   wait(10000);
   it('DEX admin should be able to add token to DEX', async() => {
     let dex = await DexArtifact.deployed();
     let token = await ProtocolGasFuturesTokenArtifact.deployed();
@@ -179,6 +178,7 @@ contract('In Protocol', function(accounts) {
   });
 
   it('dex should run auction', async () => {
+    wait(60000);
 
     for(var i = 0; i < gasFutureIds.length; i++){
       let protocolInstance = await ProtocolGasFuturesArtifact.deployed();
