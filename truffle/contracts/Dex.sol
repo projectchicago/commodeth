@@ -71,7 +71,7 @@ contract Dex {
     }
 
     function addNFToken (address addr, string name) public {
-        require(msg.sender == dex.admin);
+        //require(msg.sender == dex.admin);
         require(!checkToken(name));
         dex.numNFToken++;
         dex.nftokens[dex.numNFToken].initNFToken(addr, name);

@@ -7,6 +7,16 @@ var DexArtifact = artifacts.require("Dex");
 
 var Utils = require('./Utils')(DexArtifact);
 
+
+
+function wait(ms){
+   var start = new Date().getTime();
+   var end = start;
+   while(end < start + ms) {
+     end = new Date().getTime();
+  }
+}
+
 contract('In Protocol', function(accounts) {
 
    let web3 = ProtocolGasFuturesArtifact.web3;
@@ -34,6 +44,7 @@ contract('In Protocol', function(accounts) {
    web3.eth.sendTransaction({ from: miner, to: bidder1, value: fiveETH * 10 });
    web3.eth.sendTransaction({ from: miner, to: bidder2, value: fiveETH * 10 });
    web3.eth.sendTransaction({ from: miner, to: bidder3, value: fiveETH * 10 });
+    wait(10000);
 
   it('DEX admin should be able to add token to DEX', async() => {
     let dex = await DexArtifact.deployed();
@@ -42,9 +53,10 @@ contract('In Protocol', function(accounts) {
     let exists = await dex.checkToken.call(tokenName);
     if(!exists){
       Utils.log(tokenName + " doesn't exist in DEX");
-      Utils.log("Adding " + tokenName + " to DEX");
+      Utils.log("Adding " + tokenName + " to DEX " + dex.address);
       Utils.log(token.address);
-      Utils.log(dexAdmin);
+      //let setadmin = await dex.admin.call();
+      //Utils.log("Admin " + setadmin);
 
       let addTx = await dex.addNFToken(token.address, tokenName, { from: dexAdmin });
       let id = await token.totalSupply.call();
