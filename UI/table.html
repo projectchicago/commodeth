@@ -20,10 +20,10 @@
     border-bottom: 1px solid #ddd;
 	}
 
-	tr:nth-of-type(n+3)
+	/*tr:nth-of-type(n+3)
 	{
     background-color:salmon;
-	}
+	}*/
 </style>
 
 <body>
@@ -51,36 +51,36 @@ const columnCount = columnHeadings.length;
 const rowCount = data.length;
 
 // Create table.
-var table = document.createElement('table');
+let table = document.createElement('table');
 table.id = 'main-table';
 document.getElementById("data-list").appendChild(table);
 
 const loadData = (data) => {
-	var header = table.createTHead();
-	var row = header.insertRow(-1);
-	for (var i = 0; i < columnCount; i++) {
-	    var headerCell = document.createElement('th');
-	    headerCell.innerText = columnTitles[i].toUpperCase();
-	    row.appendChild(headerCell);
-	}
+	const header = table.createTHead();
+	let row = header.insertRow(-1);
+
+	_.forEach(columnTitles, (title) => {
+		let headerCell = document.createElement('th');
+    headerCell.innerText = title.toUpperCase();
+    row.appendChild(headerCell);
+	})
 
 	// Create table body.
-	var tBody = document.createElement('tbody');
+	let tBody = document.createElement('tbody');
 	tBody.setAttribute("id", "main-table-body")
 	table.appendChild(tBody);
 
-	// Add the data rows to the table body.
-	for (var i = 0; i < rowCount; i++) { // each row
-	  row = tBody.insertRow(-1);
-	  row.setAttribute('data-executionHeight', data[i]['executeHeight'])
+	_.forEach(data, (rowItem) => {
+		row = tBody.insertRow(-1);
+		row.setAttribute('data-executionHeight', rowItem['executeHeight'])
 		row.setAttribute('class', 'dataRow')
 
-	  for (var j = 0; j < columnCount; j++) { // each column
-	    var cell = row.insertCell(-1);
-	    cell.setAttribute('data-label', columnHeadings[j].toUpperCase());
-	    cell.innerText = data[i][columnHeadings[j]];
-	  }
-	}
+		_.forEach(rowItem, (cellItem) => {
+			let cell = row.insertCell(-1);
+	    cell.setAttribute('data-label', cellItem.toString().toUpperCase());
+	    cell.innerText = cellItem;
+		})
+	})
 }
 
 const updateColours = (currentHeight) => {
@@ -89,8 +89,7 @@ const updateColours = (currentHeight) => {
 
 	_.forEach(rows, (row) => {
 		if (parseInt(row.getAttribute('data-executionHeight')) > currentHeight) {
-			console.log(parseInt(row.getAttribute('data-executionHeight')))
-			row.style.backgroundColor = 'maroon'
+			row.style.backgroundColor = 'maroon';
 		}
 	})
 }
@@ -99,15 +98,14 @@ const insertRow = (data) => {
 	const tableBody = document.getElementById('main-table-body');
 
 	row = tableBody.insertRow(0);
-
 	row.setAttribute('data-executionHeight', data['executeHeight'])
 	row.setAttribute('class', 'dataRow')
 
-	for (var j = 0; j < columnCount; j++) {
-    var cell = row.insertCell(-1);
-    cell.setAttribute('data-label', columnHeadings[j].toUpperCase());
-    cell.innerText = data[columnHeadings[j]];
-  }
+	_.forEach(data, (cellItem) => {
+		let cell = row.insertCell(-1);
+    cell.setAttribute('data-label', cellItem.toString().toUpperCase());
+    cell.innerText = cellItem;
+	})
 
 }
 
@@ -126,6 +124,5 @@ insertRow({
 	executionMessage: "0x.hiiii....",
 	executionAddress: "0x.....",
 })
-
 
 </script>
